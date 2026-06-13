@@ -313,7 +313,7 @@ registerPattern('suicide_rush', (enemy, ctx, state, time) => { ... });
 - [ ] `core/EntityData.ts`（Phase 2 から移動）: hp/maxHp/faction/aiState/enemyId 等の型付きアクセサを導入し、`getData('hp')` 直書きを置換。戦闘系の分離と同時に行い、まとめて検証する
 - [ ] `BulletSystem`: 陣営別グループ（friendlyBullets / enemyBullets）へ再編。`fireBullet()` ファクトリ一本化。tint 比較による判定を全廃
 - [ ] `HealthSystem`: 15個の hit ハンドラを `applyDamage()` + `entity-destroyed` イベントへ集約
-- [ ] `CombatContext`（型付き）を導入し、`EnemyPatternDB`/`EnemySpawnManager` の `scene as any` 11箇所を解消（→ Lint も大きく減る）
+- [x] **`CombatScene`（型付きインターフェース）を導入し `scene as any` を全廃**（2026-06-13）。`core/CombatScene.ts` を MainScene が implements、`EnemyPatternDB`/`EnemySpawnManager` の scene 引数を `CombatScene` 型に。9箇所の `(scene as any).X` を撲滅（型のみの変更＝コンパイル後JS不変）。残る `as any` は `waveProgress[key]` と `webkitAudioContext` のみ（scene 無関係）
 - [ ] 衝突登録を宣言的なテーブル（どのグループ×どのグループ→どの処理）に変換
 - [ ] `GameOverScene` を追加し、`triggerGameOver()`（現状は `scene.pause()` のみ）を「game-over イベント発火」に統一（リスタート実装）
 

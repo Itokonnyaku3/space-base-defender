@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { EventBus } from '../EventBus';
 import { SoundEffects } from '../audio/SoundEffects';
+import type { CombatScene } from '../core/CombatScene';
 
 export interface AIState {
     pattern: string;
@@ -14,7 +15,7 @@ export interface AIState {
 export class EnemyPatternDB {
     static execute(
         enemy: Phaser.Physics.Arcade.Sprite,
-        scene: Phaser.Scene,
+        scene: CombatScene,
         time: number,
         base: Phaser.Physics.Arcade.Sprite,
         player: Phaser.Physics.Arcade.Sprite
@@ -64,7 +65,7 @@ export class EnemyPatternDB {
         }
     }
 
-    private static rushBase(enemy: Phaser.Physics.Arcade.Sprite, scene: Phaser.Scene, aiState: AIState, base: Phaser.Physics.Arcade.Sprite) {
+    private static rushBase(enemy: Phaser.Physics.Arcade.Sprite, scene: CombatScene, aiState: AIState, base: Phaser.Physics.Arcade.Sprite) {
         const angle = Phaser.Math.Angle.Between(enemy.x, enemy.y, base.x, base.y);
         // ゆっくり回転させる (0.02ラジアンずつ)
         enemy.rotation = Phaser.Math.Angle.RotateTo(enemy.rotation, angle + Math.PI / 2, 0.02);
@@ -73,7 +74,7 @@ export class EnemyPatternDB {
         scene.physics.velocityFromRotation(enemy.rotation - Math.PI / 2, aiState.speed || 18, enemy.body!.velocity);
     }
 
-    private static rushTarget(enemy: Phaser.Physics.Arcade.Sprite, scene: Phaser.Scene, aiState: AIState, base: Phaser.Physics.Arcade.Sprite, player: Phaser.Physics.Arcade.Sprite, time: number) {
+    private static rushTarget(enemy: Phaser.Physics.Arcade.Sprite, scene: CombatScene, aiState: AIState, base: Phaser.Physics.Arcade.Sprite, player: Phaser.Physics.Arcade.Sprite, time: number) {
         const target = aiState.target || base;
         const angleToTarget = Phaser.Math.Angle.Between(enemy.x, enemy.y, target.x, target.y);
         
@@ -91,7 +92,7 @@ export class EnemyPatternDB {
         }
     }
 
-    private static circlingSplit(enemy: Phaser.Physics.Arcade.Sprite, scene: Phaser.Scene, aiState: AIState, base: Phaser.Physics.Arcade.Sprite, player: Phaser.Physics.Arcade.Sprite) {
+    private static circlingSplit(enemy: Phaser.Physics.Arcade.Sprite, scene: CombatScene, aiState: AIState, base: Phaser.Physics.Arcade.Sprite, player: Phaser.Physics.Arcade.Sprite) {
         const distToBase = Phaser.Math.Distance.Between(enemy.x, enemy.y, base.x, base.y);
         const distToPlayer = Phaser.Math.Distance.Between(enemy.x, enemy.y, player.x, player.y);
 
@@ -99,7 +100,7 @@ export class EnemyPatternDB {
         if (distToBase < 300 || distToPlayer < 200) {
             // 同一スコードロンの全機体にスプリット指示を出す
             if (aiState.squadronId) {
-                const enemiesGroup = (scene as any).enemies as Phaser.Physics.Arcade.Group;
+                const enemiesGroup = scene.enemies;
                 if (enemiesGroup) {
                     enemiesGroup.getChildren().forEach((child) => {
                         const sibling = child as Phaser.Physics.Arcade.Sprite;
@@ -140,7 +141,7 @@ export class EnemyPatternDB {
 
     private static single_rush(
         enemy: Phaser.Physics.Arcade.Sprite,
-        scene: Phaser.Scene,
+        scene: CombatScene,
         aiState: AIState,
         base: Phaser.Physics.Arcade.Sprite,
         time: number
@@ -162,7 +163,7 @@ export class EnemyPatternDB {
 
     private static squadron_circle(
         enemy: Phaser.Physics.Arcade.Sprite,
-        scene: Phaser.Scene,
+        scene: CombatScene,
         aiState: AIState,
         base: Phaser.Physics.Arcade.Sprite,
         player: Phaser.Physics.Arcade.Sprite,
@@ -172,7 +173,7 @@ export class EnemyPatternDB {
 
         // プレイヤーが 250px 以内に接近した場合、スコードロン内の先頭1機のみがプレイヤーをターゲットにする
         if (distToPlayer < 250 && aiState.squadronId) {
-            const enemiesGroup = (scene as any).enemies as Phaser.Physics.Arcade.Group;
+            const enemiesGroup = scene.enemies;
             if (enemiesGroup) {
                 // 同じスコードロンの生存機リストを取得
                 const siblings = enemiesGroup.getChildren()
@@ -220,7 +221,7 @@ export class EnemyPatternDB {
 
     private static single_circle(
         enemy: Phaser.Physics.Arcade.Sprite,
-        scene: Phaser.Scene,
+        scene: CombatScene,
         aiState: AIState,
         base: Phaser.Physics.Arcade.Sprite,
         player: Phaser.Physics.Arcade.Sprite,
@@ -256,21 +257,21 @@ export class EnemyPatternDB {
 
     private static squadron_split_target(
         enemy: Phaser.Physics.Arcade.Sprite,
-        scene: Phaser.Scene,
+        scene: CombatScene,
         aiState: AIState,
         base: Phaser.Physics.Arcade.Sprite,
         player: Phaser.Physics.Arcade.Sprite,
         time: number
     ) {
         // 輸送船 (scene.transportShip) をターゲットとする
-        const transportShip = (scene as any).transportShip as Phaser.Physics.Arcade.Sprite | null;
+        const transportShip = scene.transportShip;
         const targetShip = transportShip && transportShip.active ? transportShip : base;
 
         const distToPlayer = Phaser.Math.Distance.Between(enemy.x, enemy.y, player.x, player.y);
 
         // 自機が 250px 以内に接近した場合、スコードロン内で自機を追従している機体がいなければ、1機だけ自機ターゲットに切り替える
         if (distToPlayer < 250 && aiState.squadronId) {
-            const enemiesGroup = (scene as any).enemies as Phaser.Physics.Arcade.Group;
+            const enemiesGroup = scene.enemies;
             if (enemiesGroup) {
                 // 同じスコードロンの生存機リストを取得
                 const siblings = enemiesGroup.getChildren()
@@ -354,7 +355,7 @@ export class EnemyPatternDB {
 
     private static suicideRush(
         enemy: Phaser.Physics.Arcade.Sprite,
-        scene: Phaser.Scene,
+        scene: CombatScene,
         aiState: AIState,
         base: Phaser.Physics.Arcade.Sprite
     ) {
@@ -366,7 +367,7 @@ export class EnemyPatternDB {
 
     private static standardOrbitAttack(
         enemy: Phaser.Physics.Arcade.Sprite,
-        scene: Phaser.Scene,
+        scene: CombatScene,
         aiState: AIState,
         base: Phaser.Physics.Arcade.Sprite
     ) {
@@ -416,7 +417,7 @@ export class EnemyPatternDB {
 
     private static guardSuicide(
         enemy: Phaser.Physics.Arcade.Sprite,
-        scene: Phaser.Scene,
+        scene: CombatScene,
         aiState: AIState,
         base: Phaser.Physics.Arcade.Sprite,
         player: Phaser.Physics.Arcade.Sprite,
@@ -442,7 +443,7 @@ export class EnemyPatternDB {
         // 自爆機の検索
         let leader: Phaser.Physics.Arcade.Sprite | null = null;
         if (aiState.squadronId) {
-            const enemiesGroup = (scene as any).enemies as Phaser.Physics.Arcade.Group;
+            const enemiesGroup = scene.enemies;
             if (enemiesGroup) {
                 const siblings = enemiesGroup.getChildren() as Phaser.Physics.Arcade.Sprite[];
                 for (const sib of siblings) {
@@ -493,8 +494,8 @@ export class EnemyPatternDB {
         }
     }
 
-    private static fireEnemyBullet(enemy: Phaser.Physics.Arcade.Sprite, scene: Phaser.Scene, angle: number) {
-        const turretBullets = (scene as any).turretBullets as Phaser.Physics.Arcade.Group;
+    private static fireEnemyBullet(enemy: Phaser.Physics.Arcade.Sprite, scene: CombatScene, angle: number) {
+        const turretBullets = scene.turretBullets;
         if (turretBullets) {
             const bullet = turretBullets.get(enemy.x, enemy.y) as Phaser.Physics.Arcade.Sprite;
             if (bullet) {

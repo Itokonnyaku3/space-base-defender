@@ -3,6 +3,7 @@ import { ENEMY_CONFIGS } from './configs/EnemyConfig';
 import { SPAWN_CONFIG } from './configs/SpawnConfig';
 import type { AIState } from './ai/EnemyPatternDB';
 import { EventBus } from './EventBus';
+import type { CombatScene } from './core/CombatScene';
 
 /**
  * 敵の出現（スポーン）条件や座標計算、湧きルールを専門に管理するクラスです。
@@ -14,13 +15,13 @@ import { EventBus } from './EventBus';
  * - すべての敵は、設定ファイルに定義された hp, speed, aiPattern をそのまま読み込んで適用しなければなりません。
  */
 export class EnemySpawnManager {
-    private scene: Phaser.Scene;
+    private scene: CombatScene;
     private base: Phaser.Physics.Arcade.Sprite;
     private outposts: Phaser.Physics.Arcade.Group;
     private enemies: Phaser.Physics.Arcade.Group;
 
     constructor(
-        scene: Phaser.Scene,
+        scene: CombatScene,
         base: Phaser.Physics.Arcade.Sprite,
         outposts: Phaser.Physics.Arcade.Group,
         enemies: Phaser.Physics.Arcade.Group
@@ -90,7 +91,7 @@ export class EnemySpawnManager {
      */
     public getSpawnDelay(): number {
         const activeOutpostsCount = this.outposts.getChildren().filter(o => o.active).length;
-        const currentWave = (this.scene as any).scenarioManager?.getCurrentWaveId() || 'wave1';
+        const currentWave = this.scene.scenarioManager?.getCurrentWaveId() || 'wave1';
 
         // Wave 2 は輸送船護衛のため、自動湧き間隔を長めに設定
         if (currentWave === 'wave2') {
@@ -178,7 +179,7 @@ export class EnemySpawnManager {
         spawnSource: 'outpost' | 'screen_edge' | 'base',
         squadronId?: string
     ) {
-        const currentWave = (this.scene as any).scenarioManager?.getCurrentWaveId() || 'wave1';
+        const currentWave = this.scene.scenarioManager?.getCurrentWaveId() || 'wave1';
         let targetCount = count;
         let targetEnemyId = enemyId;
         let spawnX: number;
@@ -333,7 +334,7 @@ export class EnemySpawnManager {
      * 若干の角度および距離のランダム要素を含みます。
      */
     public getTransportBehindSpawnCoordinates(): { x: number; y: number } {
-        const transport = (this.scene as any).transportShip as Phaser.Physics.Arcade.Sprite | null;
+        const transport = this.scene.transportShip;
         
         if (transport && transport.active) {
             // 輸送船から自基地（base）への角度

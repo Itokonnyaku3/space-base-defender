@@ -8,13 +8,14 @@ import { SPAWN_CONFIG } from './configs/SpawnConfig';
 import { ENEMY_CONFIGS } from './configs/EnemyConfig';
 import { EnemyPatternDB, type AIState } from './ai/EnemyPatternDB';
 import { EnemySpawnManager } from './EnemySpawnManager';
+import type { CombatScene } from './core/CombatScene';
 import { SoundEffects } from './audio/SoundEffects';
 import { MusicSynthesizer } from './audio/MusicSynthesizer';
 import { createGameTextures } from './visuals/GameTextures';
 import { createStarfield } from './visuals/Starfield';
 import { WORLD_SIZE, WORLD_CENTER } from './core/constants';
 
-export default class MainScene extends Phaser.Scene {
+export default class MainScene extends Phaser.Scene implements CombatScene {
   private player!: Phaser.Physics.Arcade.Sprite;
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private wasdKeys!: Record<string, Phaser.Input.Keyboard.Key>;
@@ -24,9 +25,9 @@ export default class MainScene extends Phaser.Scene {
   private rKey!: Phaser.Input.Keyboard.Key; // 中継レーダー設置キー
   
   private bullets!: Phaser.Physics.Arcade.Group;
-  private enemies!: Phaser.Physics.Arcade.Group;
+  enemies!: Phaser.Physics.Arcade.Group;
   private turrets!: Phaser.Physics.Arcade.Group;
-  private turretBullets!: Phaser.Physics.Arcade.Group;
+  turretBullets!: Phaser.Physics.Arcade.Group;
   private allies!: Phaser.Physics.Arcade.Group;
   private motherships!: Phaser.Physics.Arcade.Group;
   private allyBullets!: Phaser.Physics.Arcade.Group;
@@ -34,7 +35,7 @@ export default class MainScene extends Phaser.Scene {
   private relays!: Phaser.Physics.Arcade.Group; // 中継レーダーグループ
   private thrusterParticles!: Phaser.Physics.Arcade.Group; // 姿勢制御スラスター用
   
-  private transportShip: Phaser.Physics.Arcade.Sprite | null = null;
+  transportShip: Phaser.Physics.Arcade.Sprite | null = null;
   private transportShipGroup!: Phaser.Physics.Arcade.Group;
   private transportHpGraphics!: Phaser.GameObjects.Graphics;
   private base!: Phaser.Physics.Arcade.Sprite;
@@ -55,7 +56,7 @@ export default class MainScene extends Phaser.Scene {
 
   private spawnEvent!: Phaser.Time.TimerEvent;
   private spawnManager!: EnemySpawnManager;
-  private scenarioManager!: ScenarioManager;
+  scenarioManager!: ScenarioManager;
   private radarDebugMode: boolean = false;
   private targetMoveAngle: number | null = null;
   private aKey!: Phaser.Input.Keyboard.Key;
