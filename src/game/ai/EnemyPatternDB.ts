@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { EventBus } from '../EventBus';
+import { SoundEffects } from '../audio/SoundEffects';
 
 export interface AIState {
     pattern: string;
@@ -507,8 +508,8 @@ export class EnemyPatternDB {
                 
                 scene.physics.velocityFromRotation(angle, 70, bullet.body!.velocity);
 
-                // 射撃音: scene.soundEffects は存在しないため従来は常に無音だった（死にコードを除去）。
-                // SoundEffects を audio/ へ独立モジュール化する Phase 1 で、clean import により本来の発射音を復元する。
+                // 敵の発射音（Phase 1 で SoundEffects を独立モジュール化したことで循環参照なしに復元）
+                SoundEffects.playMachinegun();
             }
         }
     }

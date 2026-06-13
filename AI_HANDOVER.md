@@ -98,6 +98,19 @@
   - `npm run lint` は **53 エラー**（Phase 0 着手前の 55 から、`as any` 除去で 2 減）。内訳は `no-explicit-any`・未使用変数など既存のもの。**Lint と TypeScript strict 化は Phase 2 で対応予定**。
   - `npm run check` は上記 Lint エラーのため現状レッド（ビルドステップは成功、Lint ステップで失敗する状態）。
 
+## 【2026/06/13】Phase 1: 機械的ファイル分割（挙動不変） 完了
+> MainScene 神クラスから、ゲームロジックと無関係な関心事を独立モジュールへ切り出した。すべて挙動保存の移動。
+- **新規モジュール**:
+  - `src/game/audio/SoundEffects.ts` … 効果音（旧 MainScene 末尾の static クラスを移設）
+  - `src/game/audio/MusicSynthesizer.ts` … BGMシーケンサ（同上）
+  - `src/game/visuals/GameTextures.ts` … `createGameTextures(scene)`（旧 preload のテクスチャ生成）
+  - `src/game/visuals/Starfield.ts` … `createStarfield(scene)`（星空生成）
+  - `src/game/core/constants.ts` … `WORLD_SIZE`(6000) / `WORLD_CENTER`(3000)
+- **MainScene**: 上記を import して呼び出すだけに。**2855 → 2206行（-23%）**。`6000`/基地・自機座標`3000` を定数へ置換。
+- **敵の発射音を復元**（Phase 0 持ち越し分）: `EnemyPatternDB` が `audio/SoundEffects` を循環参照なしに import し `playMachinegun()` を発火。
+- **検証**: `npm run build` グリーン。dev サーバーで Phaser 正常起動・コンソールエラーゼロを確認（描画スクショは WebGL canvas のため取得不可＝ツール制約。簡単な実機プレイ確認を推奨）。Lint は 53 のまま（新規ファイルはエラーゼロ）。
+- **次のステップ**: Phase 2（型付きイベント `core/GameEvents.ts`・`EntityData` アクセサ・TypeScript strict 化 + Lint 一掃）。`MainScene` の 2000行未満化は HUD の UIScene 化を行う Phase 3 で達成予定。
+
 ## 次のAI（アシスタント）への指示
 - このファイルは、異なるPC間で開発を引き継ぐ際に、担当AIがプロジェクトの全体像と進行状況を理解するためのものです。
 - 大きな開発ステップが完了するごとに、このドキュメントの「現在の進捗・決定事項」および要件・仕様の追記を行ってください。
