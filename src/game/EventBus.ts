@@ -1,4 +1,3 @@
-import Phaser from 'phaser';
 import type { ScenarioEvent, ScenarioAction, ScenarioData } from './ScenarioManager';
 
 /**
@@ -69,8 +68,59 @@ type Handler<K extends EventKey> = (payload: GameEventMap[K]) => void;
 // void イベントは引数なし、それ以外は [payload] を要求するための条件型
 type EmitArgs<K extends EventKey> = GameEventMap[K] extends void ? [] : [GameEventMap[K]];
 
+/**
+ * Phaser 非依存の最小 EventEmitter。
+ * これにより EventBus（と ScenarioManager 等の購読側）を Node 上で単体テストできる。
+ * 使用する on/once/off(ハンドラ指定)/off(全消し)/emit のセマンティクスは Phaser.Events.EventEmitter と一致させている。
+ */
+interface MiniListener {
+    fn: (...args: unknown[]) => void;
+    context?: unknown;
+    once: boolean;
+}
+
+class MiniEventEmitter {
+    private readonly map = new Map<string, MiniListener[]>();
+
+    private add(event: string, fn: (...args: unknown[]) => void, context: unknown, once: boolean): void {
+        const arr = this.map.get(event) ?? [];
+        arr.push({ fn, context, once });
+        this.map.set(event, arr);
+    }
+
+    on(event: string, fn: (...args: unknown[]) => void, context?: unknown): void {
+        this.add(event, fn, context, false);
+    }
+
+    once(event: string, fn: (...args: unknown[]) => void, context?: unknown): void {
+        this.add(event, fn, context, true);
+    }
+
+    off(event: string, fn?: (...args: unknown[]) => void): void {
+        if (!fn) {
+            this.map.delete(event);
+            return;
+        }
+        const arr = this.map.get(event);
+        if (!arr) return;
+        const next = arr.filter((l) => l.fn !== fn);
+        if (next.length) this.map.set(event, next);
+        else this.map.delete(event);
+    }
+
+    emit(event: string, ...args: unknown[]): void {
+        const arr = this.map.get(event);
+        if (!arr) return;
+        // 実行中の登録/解除に備えてコピーを走査する
+        for (const l of [...arr]) {
+            l.fn.apply(l.context, args);
+            if (l.once) this.off(event, l.fn);
+        }
+    }
+}
+
 class TypedEventBus {
-    private readonly emitter = new Phaser.Events.EventEmitter();
+    private readonly emitter = new MiniEventEmitter();
 
     emit<K extends EventKey>(event: K, ...args: EmitArgs<K>): void {
         this.emitter.emit(event, ...args);
@@ -85,8 +135,8 @@ class TypedEventBus {
     }
 
     /** 特定のハンドラだけを解除する（ハンドラ必須）。 */
-    off<K extends EventKey>(event: K, fn: Handler<K>, context?: unknown): void {
-        this.emitter.off(event, fn as (...a: unknown[]) => void, context);
+    off<K extends EventKey>(event: K, fn: Handler<K>): void {
+        this.emitter.off(event, fn as (...a: unknown[]) => void);
     }
 
     /** あるイベントの全リスナーを解除する。リスナー二重登録を防ぐ初期化用途に限定して使う。 */
