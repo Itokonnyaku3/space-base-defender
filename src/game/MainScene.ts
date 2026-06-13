@@ -1207,10 +1207,8 @@ export default class MainScene extends Phaser.Scene implements CombatScene {
       const r = relay as Phaser.Physics.Arcade.Sprite;
       if (!b.active || !r.active) return;
       
-      // 弾のティントカラーを取得
-      const tint = b.tintTopLeft;
-      // 敵巨大母船の弾は 0xff3333 (赤色)
-      if (tint === 0xff3333) {
+      // 敵弾のみが中継基地にダメージを与える（陣営はデータフラグで判定。色には依存しない）
+      if (b.getData('isEnemyBullet') === true) {
           b.setActive(false);
           b.setVisible(false);
           if (b.body) {
@@ -1288,7 +1286,7 @@ export default class MainScene extends Phaser.Scene implements CombatScene {
       const a = ally as Phaser.Physics.Arcade.Sprite;
       if (!b.active || !a.active) return;
       
-      if (b.tintTopLeft === 0xff3333) {
+      if (b.getData('isEnemyBullet') === true) {
           b.setActive(false);
           b.setVisible(false);
           if (b.body) {
@@ -1315,7 +1313,7 @@ export default class MainScene extends Phaser.Scene implements CombatScene {
       const b = bullet as Phaser.Physics.Arcade.Sprite;
       if (!b.active) return;
       
-      if (b.tintTopLeft === 0xff3333) {
+      if (b.getData('isEnemyBullet') === true) {
           b.setActive(false);
           b.setVisible(false);
           if (b.body) {
@@ -2267,7 +2265,7 @@ export default class MainScene extends Phaser.Scene implements CombatScene {
       const b = bullet as Phaser.Physics.Arcade.Sprite;
       if (!ship.active || !b.active) return;
 
-      if (b.tintTopLeft === 0xff3333) {
+      if (b.getData('isEnemyBullet') === true) {
           b.setActive(false);
           b.setVisible(false);
           if (b.body) {

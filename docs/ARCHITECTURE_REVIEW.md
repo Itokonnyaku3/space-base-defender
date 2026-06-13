@@ -311,14 +311,16 @@ registerPattern('suicide_rush', (enemy, ctx, state, time) => { ... });
 
 ### Phase 3: 戦闘系の統合（2〜4日）
 - [ ] `core/EntityData.ts`（Phase 2 から移動）: hp/maxHp/faction/aiState/enemyId 等の型付きアクセサを導入し、`getData('hp')` 直書きを置換。戦闘系の分離と同時に行い、まとめて検証する
-- [ ] `BulletSystem`: 陣営別グループ（friendlyBullets / enemyBullets）へ再編。`fireBullet()` ファクトリ一本化。tint 比較による判定を全廃
+- [x] **tint 比較による陣営判定を全廃**（2026-06-13）: `bullet.tintTopLeft === 0xff3333`（色比較）4箇所を `bullet.getData('isEnemyBullet') === true`（データフラグ）に置換。敵弾は生成時に必ず tint と isEnemyBullet を同時セットしていたため**挙動完全保存**で色依存（§2.6）を撲滅。`tintTopLeft` の grep = 0。
+  - [ ] （残・高リスク）陣営別グループ（friendlyBullets/enemyBullets）への再編・`fireBullet()` ファクトリ一本化は behavior-changing なので別途プレイテスト前提で実施
 - [ ] `HealthSystem`: 15個の hit ハンドラを `applyDamage()` + `entity-destroyed` イベントへ集約
 - [x] **`CombatScene`（型付きインターフェース）を導入し `scene as any` を全廃**（2026-06-13）。`core/CombatScene.ts` を MainScene が implements、`EnemyPatternDB`/`EnemySpawnManager` の scene 引数を `CombatScene` 型に。9箇所の `(scene as any).X` を撲滅（型のみの変更＝コンパイル後JS不変）。残る `as any` は `waveProgress[key]` と `webkitAudioContext` のみ（scene 無関係）
 - [ ] 衝突登録を宣言的なテーブル（どのグループ×どのグループ→どの処理）に変換
 - [x] **リスタート実装**（2026-06-13）: `triggerGameOver()` を拡張し、GAME OVER オーバーレイ表示＋BGM停止＋`game-over-changed` 発火＋多重発火ガード。リスタートは **`Enter` キー / React「⟳ リスタート」ボタン → `restartGame()`**（死亡時の Wave を sessionStorage に保存して全リロード→`loadScenario` がその Wave から復元）。**死亡した Wave からやり直す**仕様。※専用 Scene ではなくオーバーレイ方式。
 - [x] **新規開始 Wave を Wave 1 に修正**（2026-06-13）: 開発用デフォルトだった「Wave 2 開始」を本来の Wave 1（チュートリアル）開始に。`MainScene.currentWave`/`ScenarioManager` の初期値を 1/wave1 に。**自動検証済み**: 起動時に Wave1 オープニング通信表示、sessionStorage='wave5' で Wave5 復元（wave5 通信を確認）、コンソールエラーゼロ、build/test(16)緑。
 
-**受け入れ条件**: `tintTopLeft` の grep がゼロ / hit 系メソッドが3個以下 / `scene as any` がゼロ（✅済）/ ゲームオーバーからリスタート可能（✅実装・要プレイテスト）
+**受け入れ条件**: `tintTopLeft` の grep がゼロ（✅済）/ hit 系メソッドが3個以下（未・HealthSystem 集約が最難関）/ `scene as any` がゼロ（✅済）/ ゲームオーバーからリスタート可能（✅済・自動検証）
+→ 4条件中3つ達成。残るは **HealthSystem による hit ハンドラ集約**（最もリスクが高く、戦闘全経路のプレイテストが必須）。
 
 ### Phase 4: 設定とWaveの Single Source of Truth 化（チューニング値は完了 2026-06-13）
 - [x] `WeaponConfig` を実装と一致させ（long_range / machinegun）、MainScene の直書きパラメータ（CT・威力・射程・弾速・加速・tint・音）を移管。CTゲージ・UI名も config 参照に
