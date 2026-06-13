@@ -313,7 +313,7 @@ registerPattern('suicide_rush', (enemy, ctx, state, time) => { ... });
 - [ ] `core/EntityData.ts`（Phase 2 から移動）: hp/maxHp/faction/aiState/enemyId 等の型付きアクセサを導入し、`getData('hp')` 直書きを置換。戦闘系の分離と同時に行い、まとめて検証する
 - [x] **tint 比較による陣営判定を全廃**（2026-06-13）: `bullet.tintTopLeft === 0xff3333`（色比較）4箇所を `bullet.getData('isEnemyBullet') === true`（データフラグ）に置換。敵弾は生成時に必ず tint と isEnemyBullet を同時セットしていたため**挙動完全保存**で色依存（§2.6）を撲滅。`tintTopLeft` の grep = 0。
   - [ ] （残・高リスク）陣営別グループ（friendlyBullets/enemyBullets）への再編・`fireBullet()` ファクトリ一本化は behavior-changing なので別途プレイテスト前提で実施
-- [ ] `HealthSystem`: 15個の hit ハンドラを `applyDamage()` + `entity-destroyed` イベントへ集約
+- [~] `HealthSystem`: **部分的に実施**（2026-06-13）。弾の非アクティブ化（7箇所の byte-identical な重複）を `consumeBullet()` ヘルパーに集約。**ただし 15→3 への完全集約は見送り**: 各ハンドラの「ダメージ量・HPキー(`hp`/`hits`)・既定値・死亡時ロジック（ゲームオーバー/編隊分裂/動的通信/Wave進捗/撤退/タレット破壊）」が大きく異なり、汎用化は本環境で自動検証不能な戦闘コードに対し**高リスク・低リターン**（ハンドラは正しく動作中）。DRY の本質（共通部分の重複排除）は `consumeBullet`＋既出の `triggerGameOver` 集約で達成。残りの flash/damage 共通化と完全集約は、専用のプレイテスト体制で行うのが妥当。
 - [x] **`CombatScene`（型付きインターフェース）を導入し `scene as any` を全廃**（2026-06-13）。`core/CombatScene.ts` を MainScene が implements、`EnemyPatternDB`/`EnemySpawnManager` の scene 引数を `CombatScene` 型に。9箇所の `(scene as any).X` を撲滅（型のみの変更＝コンパイル後JS不変）。残る `as any` は `waveProgress[key]` と `webkitAudioContext` のみ（scene 無関係）
 - [ ] 衝突登録を宣言的なテーブル（どのグループ×どのグループ→どの処理）に変換
 - [x] **リスタート実装**（2026-06-13）: `triggerGameOver()` を拡張し、GAME OVER オーバーレイ表示＋BGM停止＋`game-over-changed` 発火＋多重発火ガード。リスタートは **`Enter` キー / React「⟳ リスタート」ボタン → `restartGame()`**（死亡時の Wave を sessionStorage に保存して全リロード→`loadScenario` がその Wave から復元）。**死亡した Wave からやり直す**仕様。※専用 Scene ではなくオーバーレイ方式。

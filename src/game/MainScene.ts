@@ -962,6 +962,16 @@ export default class MainScene extends Phaser.Scene implements CombatScene {
     return b.getData('isEnemyBullet') !== true;
   }
 
+  // 弾を非アクティブ化して物理ボディを止める共通処理（衝突ハンドラ間の重複を解消）。
+  private consumeBullet(b: Phaser.Physics.Arcade.Sprite) {
+    b.setActive(false);
+    b.setVisible(false);
+    if (b.body) {
+        b.body.stop();
+        b.body.enable = false;
+    }
+  }
+
   private hitEnemy(
     bullet: unknown,
     enemy: unknown
@@ -970,12 +980,7 @@ export default class MainScene extends Phaser.Scene implements CombatScene {
     const e = enemy as Phaser.Physics.Arcade.Sprite;
     
     if (!b.active) return;
-    b.setActive(false);
-    b.setVisible(false);
-    if (b.body) {
-        b.body.stop();
-        b.body.enable = false; // 物理ボディを無効化
-    }
+    this.consumeBullet(b);
     
     const damage = b.getData('damage') as number ?? 10;
     let hp = e.getData('hp') as number ?? ENEMY_CONFIGS.standard.hp;
@@ -1209,12 +1214,7 @@ export default class MainScene extends Phaser.Scene implements CombatScene {
       
       // 敵弾のみが中継基地にダメージを与える（陣営はデータフラグで判定。色には依存しない）
       if (b.getData('isEnemyBullet') === true) {
-          b.setActive(false);
-          b.setVisible(false);
-          if (b.body) {
-              b.body.stop();
-              b.body.enable = false; // 物理ボディを無効化
-          }
+          this.consumeBullet(b);
           
           this.triggerExplosion(b.x, b.y, 5, 0xffaa00);
           
@@ -1287,12 +1287,7 @@ export default class MainScene extends Phaser.Scene implements CombatScene {
       if (!b.active || !a.active) return;
       
       if (b.getData('isEnemyBullet') === true) {
-          b.setActive(false);
-          b.setVisible(false);
-          if (b.body) {
-              b.body.stop();
-              b.body.enable = false; // 物理ボディを無効化
-          }
+          this.consumeBullet(b);
           this.triggerExplosion(b.x, b.y, 5, 0xffaa00);
           
           const currentHp = (a.getData('hp') as number || 50) - 10;
@@ -1314,12 +1309,7 @@ export default class MainScene extends Phaser.Scene implements CombatScene {
       if (!b.active) return;
       
       if (b.getData('isEnemyBullet') === true) {
-          b.setActive(false);
-          b.setVisible(false);
-          if (b.body) {
-              b.body.stop();
-              b.body.enable = false; // 物理ボディを無効化
-          }
+          this.consumeBullet(b);
           this.triggerExplosion(b.x, b.y, 10, 0xffaa00);
           SoundEffects.playExplosion();
           
@@ -1716,12 +1706,7 @@ export default class MainScene extends Phaser.Scene implements CombatScene {
     const m = mothership as Phaser.Physics.Arcade.Sprite;
     
     if (!b.active || !m.active) return;
-    b.setActive(false);
-    b.setVisible(false);
-    if (b.body) {
-        b.body.stop();
-        b.body.enable = false; // 物理ボディを無効化
-    }
+    this.consumeBullet(b);
     this.triggerExplosion(b.x, b.y, 5, 0xffaa00);
     
     const hp = (m.getData('hp') as number || ENEMY_CONFIGS.mothership.hp) - 10;
@@ -1775,12 +1760,7 @@ export default class MainScene extends Phaser.Scene implements CombatScene {
       const o = outpost as Phaser.Physics.Arcade.Sprite;
       
       if (!b.active || !o.active) return;
-      b.setActive(false);
-      b.setVisible(false);
-      if (b.body) {
-          b.body.stop();
-          b.body.enable = false; // 物理ボディを無効化
-      }
+      this.consumeBullet(b);
       this.triggerExplosion(b.x, b.y, 5, 0xffaa00);
       
       const isWeak = o.getData('hp') <= ENEMY_CONFIGS.outpost_weak.hp;
@@ -2266,12 +2246,7 @@ export default class MainScene extends Phaser.Scene implements CombatScene {
       if (!ship.active || !b.active) return;
 
       if (b.getData('isEnemyBullet') === true) {
-          b.setActive(false);
-          b.setVisible(false);
-          if (b.body) {
-              b.body.stop();
-              b.body.enable = false;
-          }
+          this.consumeBullet(b);
           this.triggerExplosion(b.x, b.y, 5, 0xffaa00);
 
           const currentHp = (ship.getData('hp') as number || 100) - 5;
