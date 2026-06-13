@@ -11,6 +11,7 @@ function App() {
   const [view, setView] = useState<'game' | 'editor'>('game');
   const [debugMode, setDebugMode] = useState<boolean>(false);
   const [isPaused, setIsPaused] = useState<boolean>(false);
+  const [isGameOver, setIsGameOver] = useState<boolean>(false);
 
   const handleSetView = (newView: 'game' | 'editor') => {
     setView(newView);
@@ -39,6 +40,15 @@ function App() {
     };
   }, []);
 
+  // Phaser 側のゲームオーバー状態を受け取り、リスタートUIを表示する
+  useEffect(() => {
+    const onGameOver = (over: boolean) => setIsGameOver(over);
+    EventBus.on('game-over-changed', onGameOver);
+    return () => {
+      EventBus.off('game-over-changed', onGameOver);
+    };
+  }, []);
+
   return (
     <div className="app-container" style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden', backgroundColor: '#000', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
       <div style={{ position: 'relative', width: '100%', height: '100%', maxWidth: 'min(177.78vh, 1920px)', maxHeight: 'min(56.25vw, 1080px)', aspectRatio: '16/9' }}>
@@ -49,7 +59,32 @@ function App() {
           <CommunicationUI />
           <RadarUI radarDebugMode={debugMode} />
           {debugMode && <DebugLogUI />}
-          
+
+          {/* ゲームオーバー時のリスタートボタン（全リロードで確実にリセット） */}
+          {isGameOver && (
+            <button
+              onClick={() => window.location.reload()}
+              style={{
+                position: 'absolute',
+                top: '58%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                zIndex: 2100,
+                padding: '12px 32px',
+                backgroundColor: 'rgba(239, 68, 68, 0.92)',
+                border: '2px solid #fca5a5',
+                color: '#fff',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontWeight: 700,
+                fontSize: '18px',
+                boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
+              }}
+            >
+              ⟳ リスタート
+            </button>
+          )}
+
           {/* Wave選択セレクトボックス（デバッグモードON時のみ表示） */}
           {debugMode && (
             <div style={{

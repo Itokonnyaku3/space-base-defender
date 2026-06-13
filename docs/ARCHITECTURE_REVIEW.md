@@ -315,9 +315,9 @@ registerPattern('suicide_rush', (enemy, ctx, state, time) => { ... });
 - [ ] `HealthSystem`: 15個の hit ハンドラを `applyDamage()` + `entity-destroyed` イベントへ集約
 - [x] **`CombatScene`（型付きインターフェース）を導入し `scene as any` を全廃**（2026-06-13）。`core/CombatScene.ts` を MainScene が implements、`EnemyPatternDB`/`EnemySpawnManager` の scene 引数を `CombatScene` 型に。9箇所の `(scene as any).X` を撲滅（型のみの変更＝コンパイル後JS不変）。残る `as any` は `waveProgress[key]` と `webkitAudioContext` のみ（scene 無関係）
 - [ ] 衝突登録を宣言的なテーブル（どのグループ×どのグループ→どの処理）に変換
-- [ ] `GameOverScene` を追加し、`triggerGameOver()`（現状は `scene.pause()` のみ）を「game-over イベント発火」に統一（リスタート実装）
+- [x] **リスタート実装**（2026-06-13）: `triggerGameOver()` を拡張し、GAME OVER オーバーレイ表示＋BGM停止＋`game-over-changed` 発火＋多重発火ガード。リスタートは **`Enter` キー / React「⟳ リスタート」ボタン → `window.location.reload()`**（全リロードで確実にリセット＝scene.restart の落とし穴を回避）。※専用 Scene ではなくオーバーレイ方式で実装。**ゲームオーバー発火の実挙動はプレイテストで確認（要・実機）**
 
-**受け入れ条件**: `tintTopLeft` の grep がゼロ / hit 系メソッドが3個以下 / `scene as any` がゼロ / ゲームオーバーからリスタート可能
+**受け入れ条件**: `tintTopLeft` の grep がゼロ / hit 系メソッドが3個以下 / `scene as any` がゼロ（✅済）/ ゲームオーバーからリスタート可能（✅実装・要プレイテスト）
 
 ### Phase 4: 設定とWaveの Single Source of Truth 化（チューニング値は完了 2026-06-13）
 - [x] `WeaponConfig` を実装と一致させ（long_range / machinegun）、MainScene の直書きパラメータ（CT・威力・射程・弾速・加速・tint・音）を移管。CTゲージ・UI名も config 参照に

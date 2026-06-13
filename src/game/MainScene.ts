@@ -89,6 +89,7 @@ export default class MainScene extends Phaser.Scene implements CombatScene {
   private isPaused: boolean = false;
   private isGameOver: boolean = false;
   private pauseOverlay!: Phaser.GameObjects.Container;
+  private gameOverOverlay!: Phaser.GameObjects.Container;
   private pauseKeyHandler?: (e: KeyboardEvent) => void;
 
   constructor() {
@@ -356,8 +357,24 @@ export default class MainScene extends Phaser.Scene implements CombatScene {
     this.pauseOverlay = this.add.container(cX, cY, [dark, title, hint]);
     this.pauseOverlay.setScrollFactor(0).setDepth(2000).setScale(1 / Z).setVisible(false);
 
-    // ポーズ中は scene.update が止まるため、復帰キーは window で直接拾う
+    // ゲームオーバー用オーバーレイ（具体的な原因は既存の HUD テキストが表示するため、ここは汎用表示）
+    const goRect = this.add.rectangle(0, 0, WORLD_SIZE, WORLD_SIZE, 0x1a0205, 0.8);
+    const goTitle = this.add.text(0, -34, 'GAME OVER', {
+        fontSize: '52px', color: '#ff5555', fontStyle: 'bold', fontFamily: 'Inter, Roboto, Arial'
+    }).setOrigin(0.5);
+    const goHint = this.add.text(0, 34, 'Enter キー または 画面右上のリスタートボタンで最初から', {
+        fontSize: '15px', color: '#fca5a5', fontFamily: 'Inter, Roboto, Arial'
+    }).setOrigin(0.5);
+    this.gameOverOverlay = this.add.container(cX, cY, [goRect, goTitle, goHint]);
+    this.gameOverOverlay.setScrollFactor(0).setDepth(2001).setScale(1 / Z).setVisible(false);
+
+    // ポーズ中/ゲームオーバー中は scene.update が止まるため、キーは window で直接拾う
     this.pauseKeyHandler = (e: KeyboardEvent) => {
+        if (this.isGameOver) {
+            // ゲームオーバー中は Enter で最初からやり直す（全リロードで確実にリセット）
+            if (e.key === 'Enter') window.location.reload();
+            return;
+        }
         if (e.key === 'p' || e.key === 'P') this.togglePause();
     };
     window.addEventListener('keydown', this.pauseKeyHandler);
@@ -403,10 +420,14 @@ export default class MainScene extends Phaser.Scene implements CombatScene {
     EventBus.emit('pause-state-changed', false);
   }
 
-  // ゲームオーバー時の共通処理（フラグを立ててシーンを停止）。
+  // ゲームオーバー時の共通処理。フラグを立て、オーバーレイ表示・BGM停止・シーン停止を行う。
   // ポーズ機能がこの状態を誤って解除しないよう isGameOver を使う。
   private triggerGameOver() {
+    if (this.isGameOver) return; // 同フレーム多重発火の防止
     this.isGameOver = true;
+    this.gameOverOverlay.setVisible(true);
+    MusicSynthesizer.stop();
+    EventBus.emit('game-over-changed', true);
     this.scene.pause();
   }
 

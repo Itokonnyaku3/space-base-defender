@@ -52,6 +52,7 @@ export interface GameEventMap {
     'debug-log-add': DebugLogPayload;
     'toggle-pause': void;
     'pause-state-changed': boolean;
+    'game-over-changed': boolean;
     'force-change-wave': string;
     'scenario-choice-selected': { eventId: string; choice: 'yes' | 'no' };
     'scenario-trigger': ScenarioEvent;
