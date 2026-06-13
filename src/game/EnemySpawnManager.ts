@@ -122,8 +122,8 @@ export class EnemySpawnManager {
     public spawnPeriodicEnemy(currentWave: number) {
         if (currentWave === 2) {
             // Wave 2 は常に 3機編隊で、輸送船の後方からスポーンさせる
-            const { x, y } = this.getTransportBehindSpawnCoordinates();
-            this.spawnScenarioEnemy(3, 'squadron_split_target', 'screen_edge', 'squad_auto_' + Date.now(), x, y);
+            // （spawnScenarioEnemy 内部で wave2 用の後方座標を再計算するため、ここで座標を渡す必要はない）
+            this.spawnScenarioEnemy(3, 'squadron_split_target', 'screen_edge', 'squad_auto_' + Date.now());
             return;
         }
 

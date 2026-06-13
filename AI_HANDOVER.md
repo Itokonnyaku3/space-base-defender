@@ -31,7 +31,7 @@
   - **即時アクション発火 & 日本語化対応の徹底**:
     - ユーザーが選択肢を押した **「その瞬間」に即座にスポーンアクションが実行される** ように変更し、出現ラグ問題を完全に解決。
     - シナリオの通信セリフ、選択肢、キャラクター名、およびゲーム内UI表示（武器・ポイント・タレット配置案内など）をすべて緊迫感溢れるSF風の **「日本語」** に統一。
-  - `npm.cmd` を用いた ESLint および TypeScript コンパイル検証をすべてエラーフリーで完全パス。
+  - （※当時の記録。その後の追加開発でビルド・Lintは破綻しており、2026/06/13 の Phase 0 でビルドのみ復旧。Lintは未解消。下記「Phase 0」参照）
 
 - **Phase 4 (データ駆動オブジェクト化 ＆ 敵前線基地システム) 完了**:
   - **完全オブジェクトデータ化 (No Hard-coding)**:
@@ -82,11 +82,21 @@
 ## 【2026/06/13】アーキテクチャ調査・改善計画の策定（Claude による全コードレビュー）
 - **必読**: 調査結果と段階的リファクタリング計画 → `docs/ARCHITECTURE_REVIEW.md`
 - **必読**: ゲーム性向上のアイデア提案と推奨着手順 → `docs/GAME_DESIGN_IDEAS.md`
-- **既知の問題（未修正）**:
-  - `npm run build` は現在 **TypeScript エラー5件で失敗する**（`MainScene.ts` の `this.soundEffects` 4件、`EnemySpawnManager.ts:126` の引数過多1件）。本ドキュメント過去記載の「コンパイル検証を完全パス」は現状とは異なるので注意。
-  - `npm run lint` も 55 エラーで失敗する。
-  - Git リポジトリが未初期化（バージョン管理なし）。
 - **注意**: 本ドキュメント内の具体的な数値（湧き間隔など）はコードと食い違っているものがある。パラメータの真実は `src/game/configs/` とコードを参照すること（詳細は ARCHITECTURE_REVIEW.md §2.3）。
+
+## 【2026/06/13】Phase 0: 安全網の構築 完了
+> リファクタリング計画（ARCHITECTURE_REVIEW.md §4）の最初のステップを実施。
+- **Git 管理を開始**: `git init`（main ブランチ）。まず修正前の現状をベースラインとしてコミット、続いて下記の修正を別コミットで記録。
+  - ※ 本プロジェクトは OneDrive 配下のため、`.git` の同期競合・破損リスクに注意（理想は OneDrive 外への移動 ＋ GitHub private へのバックアップ）。
+- **ビルドを復旧**（`npm run build` が成功するようになった）:
+  - `MainScene.ts`: 存在しない `this.soundEffects` 参照4件を `SoundEffects.playHit()`（static）へ修正。**これにより今まで鳴っていなかった基地被弾音が復活**。
+  - `EnemySpawnManager.ts:126`: `spawnScenarioEnemy()` への引数過多（余剰な x, y）を削除（内部で再計算されるため挙動は不変）。
+  - `EnemyPatternDB.ts`: 常に undefined だった `(scene as any).soundEffects` の死にコードを除去（敵の発射音は元々無音だった）。
+    - **TODO（Phase 1へ持ち越し）**: `SoundEffects` を `audio/` へ独立モジュール化した後、循環参照なしに import して**敵の発射音を本来あるべき形で復元**する。
+- **`npm run check`** スクリプトを追加（`tsc -b && eslint .`）。今後はコミット前にこれを実行する運用。
+- **既知の残課題**:
+  - `npm run lint` は **53 エラー**（Phase 0 着手前の 55 から、`as any` 除去で 2 減）。内訳は `no-explicit-any`・未使用変数など既存のもの。**Lint と TypeScript strict 化は Phase 2 で対応予定**。
+  - `npm run check` は上記 Lint エラーのため現状レッド（ビルドステップは成功、Lint ステップで失敗する状態）。
 
 ## 次のAI（アシスタント）への指示
 - このファイルは、異なるPC間で開発を引き継ぐ際に、担当AIがプロジェクトの全体像と進行状況を理解するためのものです。

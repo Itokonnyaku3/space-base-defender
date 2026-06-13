@@ -272,16 +272,19 @@ registerPattern('suicide_rush', (enemy, ctx, state, time) => { ... });
 > ① `npm run check` パス ② Wave1〜5 の通しプレイ確認 ③ 本ドキュメントの進捗欄更新
 > を行ってから次へ進む。**Phase をまたいだ「ついで修正」を禁止**（デグレ検出が不能になるため）。
 
-### Phase 0: 安全網の構築（最優先・半日）
-- [ ] `git init` → 現状を初回コミット（理想は OneDrive 外への移動も検討）
-- [ ] ビルド修正（2.1 の5エラー）:
-  - `this.soundEffects` 4箇所 → `SoundEffects.playHit()` 等の static 呼び出しへ
-  - `EnemySpawnManager.ts:126` の余剰引数 `x, y` を削除
-  - `EnemyPatternDB.ts:511-512` → `SoundEffects.playMachinegun()` を import して直接呼ぶ
-- [ ] `package.json` に `"check": "tsc -b && eslint ."` を追加
-- [ ] AI_HANDOVER.md の虚偽記載（「エラーフリー」）を修正
+### Phase 0: 安全網の構築（最優先・半日）✅ 完了 2026-06-13
+- [x] `git init`（main）→ ベースライン（修正前）と Phase 0 修正を別コミットで記録
+- [x] ビルド修正（2.1 の5エラー）:
+  - [x] `this.soundEffects` 4箇所 → `SoundEffects.playHit()`（static）へ。**基地被弾音が復活**
+  - [x] `EnemySpawnManager.ts:126` の余剰引数 `x, y` を削除（内部で再計算されるため挙動不変）
+  - [~] `EnemyPatternDB.ts:511-512` → 常に undefined の死にコードを**除去**。
+        本来の発射音の復元は循環参照を避けるため **Phase 1（SoundEffects のモジュール化）へ持ち越し**
+- [x] `package.json` に `"check": "tsc -b && eslint ."` を追加
+- [x] AI_HANDOVER.md の虚偽記載（「エラーフリー」）を修正
 
-**受け入れ条件**: `npm run build` 成功 / `git log` に履歴が存在
+**受け入れ条件**: `npm run build` 成功 / `git log` に履歴が存在 → **両方達成**
+**残課題**: `npm run lint` は 53 エラー（着手前 55 から減）。Lint/strict 化は Phase 2 で対応。
+従って現状 `npm run check` はビルド成功・Lint 失敗のレッド状態。
 
 ### Phase 1: 機械的なファイル分割（挙動不変・1日）
 - [ ] `SoundEffects` / `MusicSynthesizer` を `src/game/audio/` へ移設
@@ -346,7 +349,7 @@ registerPattern('suicide_rush', (enemy, ctx, state, time) => { ... });
 
 | Phase | 状態 | 完了日 | 担当 | 備考 |
 |---|---|---|---|---|
-| 0 安全網 | 未着手 | - | - | |
+| 0 安全網 | ✅ 完了 | 2026-06-13 | Claude | build 復旧・git 開始・check 追加。敵発射音の復元のみ Phase 1 へ |
 | 1 ファイル分割 | 未着手 | - | - | |
 | 2 型基盤 | 未着手 | - | - | |
 | 3 戦闘系統合 | 未着手 | - | - | |

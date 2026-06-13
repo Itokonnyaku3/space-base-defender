@@ -507,10 +507,8 @@ export class EnemyPatternDB {
                 
                 scene.physics.velocityFromRotation(angle, 70, bullet.body!.velocity);
 
-                // 射撃音の再生
-                if ((scene as any).soundEffects) {
-                    (scene as any).soundEffects.playMachinegun();
-                }
+                // 射撃音: scene.soundEffects は存在しないため従来は常に無音だった（死にコードを除去）。
+                // SoundEffects を audio/ へ独立モジュール化する Phase 1 で、clean import により本来の発射音を復元する。
             }
         }
     }

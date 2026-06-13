@@ -1092,9 +1092,7 @@ export default class MainScene extends Phaser.Scene {
         message: `[Damage] 自基地が敵の銃撃を被弾！ 1ダメージ受ける（耐久値: ${this.baseHp}）`
     });
 
-    if (this.soundEffects) {
-        this.soundEffects.playHit();
-    }
+    SoundEffects.playHit();
 
     if (this.baseHp <= 0) {
         this.baseHpText.setText('基地崩壊 (GAME OVER)');
@@ -1128,9 +1126,7 @@ export default class MainScene extends Phaser.Scene {
     const damage = enemyId === 'suicide_bomber' ? 10 : 5;
     this.baseHp = Math.max(0, this.baseHp - damage);
 
-    if (this.soundEffects) {
-        this.soundEffects.playHit();
-    }
+    SoundEffects.playHit();
     
     // デバッグログ通知
     EventBus.emit('debug-log-add', {
