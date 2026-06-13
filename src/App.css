@@ -1,0 +1,316 @@
+.app-container {
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+}
+
+/* Communications Overlay */
+.comms-overlay {
+  position: absolute;
+  bottom: 5%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90%;
+  max-width: 800px;
+  z-index: 10;
+  pointer-events: none; /* 下のゲーム画面も操作できるように基本は透過、ボタンのみクリック可にする */
+}
+
+.comms-panel {
+  display: flex;
+  background: rgba(10, 15, 28, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5), inset 0 0 16px rgba(255, 255, 255, 0.05);
+  pointer-events: auto; /* パネル内部はクリック可能に */
+  animation: slideUpComms 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  font-family: 'Courier New', Courier, monospace;
+}
+
+@keyframes slideUpComms {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Avatar Box */
+.avatar-container {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+  margin-right: 20px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.hologram-glow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  mix-blend-mode: screen;
+  animation: holoFlicker 2s infinite alternate;
+}
+
+.holo-grid {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+  background-size: 100% 4px, 6px 100%;
+}
+
+@keyframes holoFlicker {
+  0% { opacity: 0.8; }
+  50% { opacity: 0.95; }
+  100% { opacity: 0.75; }
+}
+
+/* Audio Waves animation */
+.holo-waves {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 40px;
+  z-index: 2;
+}
+
+.holo-waves span {
+  display: inline-block;
+  width: 4px;
+  height: 8px;
+  border-radius: 2px;
+  animation: soundwave 1.2s ease-in-out infinite;
+}
+
+.holo-waves span:nth-child(1) { animation-delay: 0.1s; }
+.holo-waves span:nth-child(2) { animation-delay: 0.3s; }
+.holo-waves span:nth-child(3) { animation-delay: 0.5s; }
+.holo-waves span:nth-child(4) { animation-delay: 0.2s; }
+.holo-waves span:nth-child(5) { animation-delay: 0.4s; }
+
+@keyframes soundwave {
+  0%, 100% {
+    height: 8px;
+  }
+  50% {
+    height: 35px;
+  }
+}
+
+.avatar-tag {
+  position: absolute;
+  bottom: 4px;
+  font-size: 8px;
+  letter-spacing: 1px;
+  opacity: 0.7;
+  z-index: 2;
+}
+
+/* Content Details */
+.comms-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.comms-header {
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 6px;
+  margin-bottom: 10px;
+}
+
+.comms-title {
+  font-size: 10px;
+  font-weight: bold;
+  letter-spacing: 2px;
+}
+
+.comms-sender {
+  font-size: 14px;
+  font-weight: bold;
+  color: #fff;
+  padding-right: 8px;
+}
+
+.comms-body {
+  flex: 1;
+  min-height: 48px;
+}
+
+.comms-text {
+  color: #e0e6ed;
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0;
+  letter-spacing: 0.5px;
+}
+
+/* Choice Buttons */
+.comms-choices {
+  display: flex;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.comms-btn {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  padding: 8px 16px;
+  font-family: inherit;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.comms-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 0 12px currentColor;
+}
+
+.btn-key {
+  font-weight: bold;
+  opacity: 0.6;
+}
+
+.comms-status {
+  font-size: 9px;
+  margin-top: 10px;
+  letter-spacing: 1px;
+  animation: blinkStatus 1s infinite alternate;
+}
+
+@keyframes blinkStatus {
+  from { opacity: 0.4; }
+  to { opacity: 1; }
+}
+
+/* Tactical Radar Panel UI */
+.radar-panel {
+  position: absolute;
+  top: 80px;
+  right: 20px;
+  background: rgba(5, 10, 20, 0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(0, 200, 255, 0.25);
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.6), inset 0 0 10px rgba(0, 200, 255, 0.1);
+  z-index: 100;
+  font-family: 'Courier New', Courier, monospace;
+}
+
+.radar-container {
+  position: relative;
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2px solid rgba(0, 200, 255, 0.4);
+  box-shadow: 0 0 15px rgba(0, 200, 255, 0.2);
+}
+
+.radar-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* SF Sweep animation */
+.radar-sweep {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: conic-gradient(from 0deg, rgba(0, 255, 170, 0.15) 0deg, rgba(0, 255, 170, 0) 90deg);
+  pointer-events: none;
+  animation: radarSweepSpin 4s linear infinite;
+  z-index: 2;
+}
+
+@keyframes radarSweepSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.radar-ring {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 1px dashed rgba(0, 200, 255, 0.15);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.radar-dir {
+  position: absolute;
+  font-size: 9px;
+  font-weight: bold;
+  color: rgba(0, 200, 255, 0.6);
+  text-shadow: 0 0 4px rgba(0, 200, 255, 0.8);
+  pointer-events: none;
+  z-index: 3;
+}
+
+.dir-n { top: 4px; left: 50%; transform: translateX(-50%); }
+.dir-s { bottom: 4px; left: 50%; transform: translateX(-50%); }
+.dir-e { right: 6px; top: 50%; transform: translateY(-50%); }
+.dir-w { left: 6px; top: 50%; transform: translateY(-50%); }
+
+.radar-label {
+  font-size: 9px;
+  font-weight: bold;
+  letter-spacing: 2px;
+  color: rgba(0, 200, 255, 0.8);
+  text-shadow: 0 0 5px rgba(0, 200, 255, 0.5);
+}
+
+/* 画面幅に応じたレスポンシブ配置（重なり・ズレ防止） */
+@media (max-width: 1400px) {
+  .comms-overlay {
+    max-width: 620px;
+  }
+}
+@media (max-width: 1100px) {
+  .comms-overlay {
+    max-width: 480px;
+    left: 42%; /* 右下のイベントログUIを避けるため、少し左に寄せる */
+  }
+}

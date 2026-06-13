@@ -1,0 +1,489 @@
+{
+  "waves": {
+    "wave1": {
+      "id": "wave1",
+      "name": "Wave 1: 基本操縦訓練",
+      "rules": {
+        "allowTurretPlacement": false,
+        "allowRelayPlacement": true,
+        "allowBoost": false
+      },
+      "clearConditions": {
+        "destroyAllOutpostsWeak": true
+      }
+    },
+    "wave2": {
+      "id": "wave2",
+      "name": "Wave 2: 輸送船護衛指令",
+      "rules": {
+        "allowTurretPlacement": false,
+        "allowRelayPlacement": true,
+        "allowBoost": false
+      },
+      "clearConditions": {
+        "transportShipReachedBase": true
+      }
+    },
+    "wave3": {
+      "id": "wave3",
+      "name": "Wave 3: 前線基地強襲",
+      "rules": {
+        "allowTurretPlacement": true,
+        "allowRelayPlacement": true,
+        "allowBoost": false
+      },
+      "clearConditions": {
+        "destroyAllOutposts": true
+      }
+    },
+    "wave4": {
+      "id": "wave4",
+      "name": "Wave 4: 巨大電磁波妨害",
+      "rules": {
+        "allowTurretPlacement": true,
+        "allowRelayPlacement": true,
+        "allowBoost": false
+      },
+      "clearConditions": {
+        "turretKills": 30
+      }
+    },
+    "wave5": {
+      "id": "wave5",
+      "name": "Wave 5: 巨大母船ボス決戦",
+      "rules": {
+        "allowTurretPlacement": true,
+        "allowRelayPlacement": true,
+        "allowBoost": false
+      },
+      "clearConditions": {
+        "destroyCarrierMothership": true
+      }
+    }
+  },
+  "events": [
+    {
+      "id": "opening_attack_1",
+      "triggerType": "time",
+      "triggerValue": 5000,
+      "hasTriggered": false,
+      "sender": "operator",
+      "senderName": "アルバイトのオペレーター",
+      "message": "あー、お疲れ様です。こちら辺境基地、臨時の留守番です。本日の引き継ぎですが…",
+      "avatarType": "wave",
+      "expression": "normal",
+      "uid": "evt_1780925887190_0_hnh4ro4jr",
+      "targetWave": "wave1"
+    },
+    {
+      "id": "opening_attack_2",
+      "triggerType": "time",
+      "triggerValue": 10500,
+      "hasTriggered": false,
+      "sender": "operator",
+      "senderName": "アルバイトのオペレーター",
+      "message": "って、何ですかこれ！？ 敵機が1機、接近中！？ まっすぐ自基地に向かってます！",
+      "avatarType": "wave",
+      "expression": "sorrow",
+      "actions": [
+        {
+          "type": "spawn_enemy",
+          "params": {
+            "count": 1,
+            "enemyType": "single_circle",
+            "spawnSource": "screen_edge"
+          }
+        }
+      ],
+      "uid": "evt_1780925887190_1_jjzggxm21",
+      "targetWave": "wave1"
+    },
+    {
+      "id": "opening_attack_3",
+      "triggerType": "time",
+      "triggerValue": 16000,
+      "hasTriggered": false,
+      "sender": "operator",
+      "senderName": "アルバイトのオペレーター",
+      "message": "自機を操縦して、迎撃をお願いします！ 画面を左クリックすると移動先を指定できます。",
+      "avatarType": "wave",
+      "expression": "normal",
+      "uid": "evt_1780925887190_2_xi2arhru9",
+      "targetWave": "wave1"
+    },
+    {
+      "id": "single_rush_2_a",
+      "triggerType": "time",
+      "triggerValue": 25000,
+      "hasTriggered": false,
+      "sender": "operator",
+      "senderName": "アルバイトのオペレーター",
+      "message": "また敵機が1機、初期周回基地から出現しました！ 自機に向けて接近しています！",
+      "avatarType": "wave",
+      "expression": "anger",
+      "actions": [
+        {
+          "type": "spawn_enemy",
+          "params": {
+            "count": 1,
+            "enemyType": "single_circle",
+            "spawnSource": "screen_edge"
+          }
+        }
+      ],
+      "uid": "evt_1780925887190_3_fg3solxak",
+      "targetWave": "wave1"
+    },
+    {
+      "id": "single_rush_3_a",
+      "triggerType": "time",
+      "triggerValue": 45000,
+      "hasTriggered": false,
+      "sender": "operator",
+      "senderName": "アルバイトのオペレーター",
+      "message": "敵機がさらに接近！ 自機をマウスの方向に向けて、Aキー長押しでエイム＆射撃です！",
+      "avatarType": "wave",
+      "expression": "normal",
+      "actions": [
+        {
+          "type": "spawn_enemy",
+          "params": {
+            "count": 1,
+            "enemyType": "standard",
+            "spawnSource": "outpost"
+          }
+        }
+      ],
+      "uid": "evt_1780925887190_4_ej2rksqw4",
+      "targetWave": "wave1"
+    },
+    {
+      "id": "squadron_attack_1_a",
+      "triggerType": "time",
+      "triggerValue": 65000,
+      "hasTriggered": false,
+      "sender": "operator",
+      "senderName": "アルバイトのオペレーター",
+      "message": "今度は3機編成の編隊攻撃機が出現しました！ 螺旋を描いてゆっくり回っています。",
+      "avatarType": "wave",
+      "expression": "anger",
+      "actions": [
+        {
+          "type": "spawn_enemy",
+          "params": {
+            "count": 3,
+            "enemyType": "squadron_attacker",
+            "spawnSource": "outpost",
+            "squadronId": "squad_wave1_1"
+          }
+        }
+      ],
+      "uid": "evt_1780925887190_5_k3ybazsgt",
+      "targetWave": "wave1"
+    },
+    {
+      "id": "squadron_attack_1_b",
+      "triggerType": "time",
+      "triggerValue": 70500,
+      "hasTriggered": false,
+      "sender": "operator",
+      "senderName": "アルバイトのオペレーター",
+      "message": "自機が近づくと、先頭の1機のみが追尾してきます！ 残り2機は旋回を維持します！",
+      "avatarType": "wave",
+      "expression": "normal",
+      "uid": "evt_1780925887190_6_0wlyah7wn",
+      "targetWave": "wave1"
+    },
+    {
+      "id": "suicide_attack_1_a",
+      "triggerType": "time",
+      "triggerValue": 80000,
+      "hasTriggered": false,
+      "sender": "operator",
+      "senderName": "アルバイトのオペレーター",
+      "message": "ひえっ！？ 非常に硬そうな黄色い敵機が、ゆっくりと基地に直撃しようとしています！あれは自爆機です！",
+      "avatarType": "wave",
+      "expression": "sorrow",
+      "actions": [
+        {
+          "type": "spawn_enemy",
+          "params": {
+            "count": 1,
+            "enemyType": "suicide_bomber",
+            "spawnSource": "screen_edge",
+            "squadronId": "suicide_squad_wave1_1"
+          }
+        }
+      ],
+      "uid": "evt_suicide_attack_1_a",
+      "targetWave": "wave1"
+    },
+    {
+      "id": "suicide_attack_1_b",
+      "triggerType": "time",
+      "triggerValue": 85500,
+      "hasTriggered": false,
+      "sender": "operator",
+      "senderName": "アルバイトのオペレーター",
+      "message": "自爆機が基地に接触すると大ダメージです！ 手前の護衛機は近づくとこちらを襲ってきます！",
+      "avatarType": "wave",
+      "expression": "normal",
+      "uid": "evt_suicide_attack_1_b",
+      "targetWave": "wave1"
+    },
+    {
+      "id": "squadron_attack_2_a",
+      "triggerType": "time",
+      "triggerValue": 95000,
+      "hasTriggered": false,
+      "sender": "operator",
+      "senderName": "アルバイトのオペレーター",
+      "message": "また編隊攻撃機が出現！ これらを全滅させれば、敵の出所の手がかりが掴めるはずです！",
+      "avatarType": "wave",
+      "expression": "anger",
+      "actions": [
+        {
+          "type": "spawn_enemy",
+          "params": {
+            "count": 3,
+            "enemyType": "squadron_attacker",
+            "spawnSource": "outpost",
+            "squadronId": "squad_wave1_2"
+          }
+        }
+      ],
+      "uid": "evt_1780925887190_7_vfn5oqi9o",
+      "targetWave": "wave1"
+    },
+    {
+      "id": "wave2_start_1",
+      "targetWave": "wave2",
+      "triggerType": "time",
+      "triggerValue": 1000,
+      "hasTriggered": false,
+      "sender": "operator",
+      "senderName": "アルバイトのオペレーター",
+      "message": "画面外から味方の輸送船が接近中！ 機械職人が乗っているようです！",
+      "avatarType": "wave",
+      "expression": "normal",
+      "uid": "evt_1780925887190_8_k4wa3ykpg"
+    },
+    {
+      "id": "wave2_start_2",
+      "targetWave": "wave2",
+      "triggerType": "time",
+      "triggerValue": 6500,
+      "hasTriggered": false,
+      "sender": "captain",
+      "senderName": "機械職人",
+      "message": "SOS！ 敵機に囲まれて動けん！ 誰か助けてくれーっ！",
+      "avatarType": "hologram",
+      "expression": "anger",
+      "actions": [
+        {
+          "type": "spawn_transport_ship",
+          "params": {}
+        },
+        {
+          "type": "spawn_enemy",
+          "params": {
+            "count": 3,
+            "enemyType": "squadron_split_target",
+            "spawnSource": "screen_edge",
+            "squadronId": "squad_wave2_1"
+          }
+        }
+      ],
+      "uid": "evt_1780925887190_9_ta5pn74rv"
+    },
+    {
+      "id": "wave2_start_3",
+      "targetWave": "wave2",
+      "triggerType": "time",
+      "triggerValue": 12000,
+      "hasTriggered": false,
+      "sender": "operator",
+      "senderName": "アルバイトのオペレーター",
+      "message": "輸送船が自基地にドッキングするまで、敵機から護衛してください！",
+      "avatarType": "wave",
+      "expression": "normal",
+      "uid": "evt_1780925887190_10_ygoeva1sr"
+    },
+    {
+      "id": "wave3_start_1",
+      "targetWave": "wave3",
+      "triggerType": "time",
+      "triggerValue": 1000,
+      "hasTriggered": false,
+      "sender": "operator",
+      "senderName": "アルバイトのオペレーター",
+      "message": "輸送船が無事ドッキングしました！ 基地の防衛兵器を強化します！",
+      "avatarType": "wave",
+      "expression": "normal",
+      "uid": "evt_1780925887190_11_y4hnrvh4z"
+    },
+    {
+      "id": "wave3_start_2",
+      "targetWave": "wave3",
+      "triggerType": "time",
+      "triggerValue": 6500,
+      "hasTriggered": false,
+      "sender": "captain",
+      "senderName": "機械職人",
+      "message": "お礼にタレットの配置数制限を解除したぞ。四隅の敵前線基地をすべて叩くのじゃ！",
+      "avatarType": "hologram",
+      "expression": "joy",
+      "uid": "evt_1780925887190_12_c3jjrz5c5"
+    },
+    {
+      "id": "wave4_start_1",
+      "targetWave": "wave4",
+      "triggerType": "time",
+      "triggerValue": 1000,
+      "hasTriggered": false,
+      "sender": "operator",
+      "senderName": "アルバイトのオペレーター",
+      "message": "敵前線基地の破壊を確認！ しかし、強力なジャミング電磁波を検知しました！",
+      "avatarType": "wave",
+      "expression": "anger",
+      "uid": "evt_1780925887190_13_02sg7arrg"
+    },
+    {
+      "id": "wave4_start_2",
+      "targetWave": "wave4",
+      "triggerType": "time",
+      "triggerValue": 6500,
+      "hasTriggered": false,
+      "sender": "captain",
+      "senderName": "機械職人",
+      "message": "索敵レーダーが機能せんな！ 敵機を30機倒して、発信源を特定するのじゃ！",
+      "avatarType": "hologram",
+      "expression": "sorrow",
+      "uid": "evt_1780925887190_14_floshcnne"
+    },
+    {
+      "id": "wave5_start_1",
+      "targetWave": "wave5",
+      "triggerType": "time",
+      "triggerValue": 1000,
+      "hasTriggered": false,
+      "sender": "operator",
+      "senderName": "アルバイトのオペレーター",
+      "message": "ジャミング発信源の特定に成功！ ですが、自基地のすぐ近くに巨大な熱源が接近中！",
+      "avatarType": "wave",
+      "expression": "anger",
+      "uid": "evt_1780925887190_15_zn8f95shy"
+    },
+    {
+      "id": "wave5_start_2",
+      "targetWave": "wave5",
+      "triggerType": "time",
+      "triggerValue": 6500,
+      "hasTriggered": false,
+      "sender": "captain",
+      "senderName": "機械職人",
+      "message": "つ、ついに本丸のお出ましじゃ！ 巨大母船が出現したぞ、基地が壊される前に壊せ！",
+      "avatarType": "hologram",
+      "expression": "anger",
+      "actions": [
+        {
+          "type": "spawn_mothership",
+          "params": {}
+        }
+      ],
+      "uid": "evt_1780925887190_16_73n8ynyjd"
+    }
+  ],
+  "dynamicEvents": {
+    "relay_destroyed": [
+      {
+        "flagCondition": {
+          "flag": "allyRescued",
+          "value": true
+        },
+        "sender": "captain",
+        "senderName": "機械職人",
+        "message": "おい！ 中継レーダーが壊されたぞ！ 視界が真っ暗じゃ、再設置せんか！",
+        "avatarType": "hologram",
+        "expression": "anger"
+      },
+      {
+        "flagCondition": {
+          "flag": "allyRescued",
+          "value": false
+        },
+        "sender": "operator",
+        "senderName": "アルバイトのオペレーター",
+        "message": "あ、中継レーダーが壊されました。給料天引きは嫌なので再設置を！",
+        "avatarType": "wave",
+        "expression": "sorrow"
+      }
+    ],
+    "outpost_destroyed": [
+      {
+        "flagCondition": {
+          "flag": "allyRescued",
+          "value": true
+        },
+        "sender": "captain",
+        "senderName": "機械職人",
+        "message": "ようやった！ 敵前線基地を破壊したな！ これで敵機の出現も減るはずじゃ",
+        "avatarType": "hologram",
+        "expression": "joy"
+      },
+      {
+        "flagCondition": {
+          "flag": "allyRescued",
+          "value": false
+        },
+        "sender": "operator",
+        "senderName": "アルバイトのオペレーター",
+        "message": "敵前線基地の破壊を確認！ 敵機の増援も減るはずです。定時退社へ！",
+        "avatarType": "wave",
+        "expression": "fun"
+      }
+    ],
+    "relay_placed": [
+      {
+        "sender": "operator",
+        "senderName": "アルバイトのオペレーター",
+        "message": "中継レーダーのオンラインを確認しました。戦術情報受信しますねー。",
+        "avatarType": "wave",
+        "expression": "normal"
+      }
+    ],
+    "wave1_cleared": [
+      {
+        "flagCondition": {
+          "flag": "allyRescued",
+          "value": true
+        },
+        "sender": "captain",
+        "senderName": "機械職人",
+        "message": "見事じゃ！ 初期周回基地を破壊したな！ 残骸で防衛タレットを設置せよ！",
+        "avatarType": "hologram",
+        "expression": "joy"
+      },
+      {
+        "flagCondition": {
+          "flag": "allyRescued",
+          "value": false
+        },
+        "sender": "operator",
+        "senderName": "アルバイトのオペレーター",
+        "message": "初期周回基地を撃破！ 防衛タレットが設置可能ですが敵前線基地が出現！",
+        "avatarType": "wave",
+        "expression": "anger"
+      }
+    ],
+    "wave1_outpost_hint": [
+      {
+        "sender": "operator",
+        "senderName": "アルバイトのオペレーター",
+        "message": "編隊を全滅！ 敵機は同じ方角から来ています。中継レーダーの設置を！",
+        "avatarType": "wave",
+        "expression": "fun"
+      }
+    ]
+  }
+}
