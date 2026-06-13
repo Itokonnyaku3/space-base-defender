@@ -335,15 +335,20 @@ registerPattern('suicide_rush', (enemy, ctx, state, time) => { ... });
 - 検証: `npm run build` グリーン、dev サーバーで起動・ポーズ往復・localStorage 新規読込・コンソールエラーゼロ。**実プレイでの最終確認（発射感・ブースト・湧き）はユーザ推奨**。
 **残**: Wave ID 文字列統一のみ（Phase 5 帯）。
 
-### Phase 5: テスト導入（1〜2日）
-- [ ] `vitest` を devDependencies に追加
-- [ ] `EventBus` を Phaser 非依存の軽量 EventEmitter に差し替え（ScenarioManager を Node 単体でテスト可能にする）
-- [ ] 優先テスト対象（純ロジックで費用対効果が高い順）:
-  1. `ScenarioManager`: トリガー条件（time/points/hp）、Waveクリア条件、フラグ分岐、forceSetWave
-  2. `EnemySpawnManager.getSpawnDelay` / スポーン座標クランプ
-  3. `ScenarioSchema`（zod）: エディタ JSON の検証（壊れたデータを保存・読込の両方で弾く）
+### Phase 5: テスト導入 ✅ 完了 2026-06-13
+- [x] `vitest` + `jsdom` を devDependencies に追加。`vitest.config.ts`(jsdom) と `test`/`test:watch` スクリプト。`check` も `vitest run` を含むように更新
+- [x] `EventBus` を Phaser 非依存の軽量 `MiniEventEmitter` に差し替え（ScenarioManager を Node 単体テスト可能に）。実アプリでも検証（ポーズ往復・コンソールエラーゼロ）
+- [x] 優先テスト対象:
+  1. `ScenarioManager`: トリガー条件（time/points）・Waveクリア条件・forceSetWave・targetWave ゲート（5件）
+  2. `ScenarioSchema`（zod）: 不正データの検出 + **出荷 default_scenario.json の検証通過（回帰防止）**+ uid 等の追加フィールド許容（6件）
+  3. `EventBus`: emitter セマンティクス固定（5件）
+- [x] **zod スキーマ**（`ScenarioSchema.ts`）を `loadScenario`/`updateScenarioEvents` に組み込み、壊れたデータをロード時に明確にログ報告（最善努力で続行）
+- [ ] （未）`EnemySpawnManager.getSpawnDelay`/スポーン座標クランプのテスト → EnemySpawnManager が Phaser を直接 import するため、Phase 3 の `CombatContext` で Phaser 依存を切り離した後に追加するのが効率的
 
-**受け入れ条件**: `npm test` がグリーン / シナリオ JSON を意図的に壊すとロード時に明確なエラーが出る
+**受け入れ条件と結果**:
+- `npm test` がグリーン → ✅ **16件 全合格**（3ファイル）。
+- シナリオ JSON を意図的に壊すとロード時に明確なエラー → ✅ `validateScenario` が「パス: メッセージ」形式で報告、`loadScenario` で console.error。テストで不正データ検出を確認。
+- 検証: `npm run build` グリーン / dev サーバーで起動・ポーズ往復・検証エラーゼロ。
 
 ---
 
@@ -371,4 +376,4 @@ registerPattern('suicide_rush', (enemy, ctx, state, time) => { ... });
 | 2 型基盤 | ✅ 核は完了 | 2026-06-13 | Claude | 型付きEventBus(13イベント)+off安全化+strict化。EntityData は Phase 3 へ移動。Lint 53 据置 |
 | 3 戦闘系統合 | 未着手 | - | - | EntityData アクセサ・CombatContext(scene as any 解消) を含む |
 | 4 設定一元化 | ✅ ほぼ完了 | 2026-06-13 | Claude | Weapon/Turret/Spawn config 化 + Waveルール機能化(boost/上限/dock/radar)。残=Wave ID文字列統一のみ(Phase 5帯) |
-| 5 テスト | 未着手 | - | - | |
+| 5 テスト | ✅ 完了 | 2026-06-13 | Claude | vitest+jsdom+zod。EventBus を Phaser 非依存化。16テスト合格。残=getSpawnDelay テスト(Phase 3後) |

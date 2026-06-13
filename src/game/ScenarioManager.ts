@@ -1,4 +1,5 @@
 import { EventBus } from './EventBus';
+import { validateScenario } from './ScenarioSchema';
 
 export interface ScenarioAction {
     type: 'spawn_enemy' | 'spawn_ally' | 'spawn_mothership' | 'add_points' | 'change_spawn_rate' | 'spawn_transport_ship';
@@ -177,6 +178,13 @@ export class ScenarioManager {
     }
 
     public loadScenario(data: ScenarioData) {
+        const errors = validateScenario(data);
+        if (errors.length > 0) {
+            console.error(
+                `[ScenarioManager] シナリオデータの検証に失敗しました（${errors.length}件）。最善努力で読み込みを続行します:\n  - ` +
+                errors.join('\n  - '),
+            );
+        }
         this.waves = data.waves || {};
         // hasTriggeredをリセットしてディープコピー
         this.events = JSON.parse(JSON.stringify(data.events)).map((e: ScenarioEvent) => ({
@@ -211,6 +219,13 @@ export class ScenarioManager {
      * イベントリスト・Wave定義・動的イベントのデータのみを更新する。
      */
     public updateScenarioEvents(data: ScenarioData) {
+        const errors = validateScenario(data);
+        if (errors.length > 0) {
+            console.error(
+                `[ScenarioManager] 注入されたシナリオデータの検証に失敗しました（${errors.length}件）:\n  - ` +
+                errors.join('\n  - '),
+            );
+        }
         this.waves = data.waves || {};
         // 未発火のイベントのみ更新（既に発火済みのイベントはそのまま保持）
         const triggeredIds = new Set(this.events.filter(e => e.hasTriggered).map(e => e.id));

@@ -144,7 +144,19 @@
   - **公転は flag 化見送り**（初期スポーンが scenarioManager 初期化前のため）。Wave1 専用機構として `currentWave === 1` 維持。
 - **Phase 4 の唯一の残**: Wave ID の文字列統一（`currentWave: number` 廃止）。最も侵襲的（spawn/hitOutpost/遷移に分散）かつ自動検証困難のため、**Phase 5（テスト導入）後に実施予定**。
 
+## 【2026/06/13】Phase 5: テスト導入 完了
+- **vitest + jsdom + zod** を導入。`vitest.config.ts`(jsdom 環境)、`npm test`/`npm run test:watch`、`npm run check` は `tsc -b && eslint . && vitest run`。
+- **EventBus を Phaser 非依存化**（`MiniEventEmitter`）＝ ScenarioManager 等を Node 単体テスト可能に。API・挙動は不変、実アプリでも検証済み。
+- **テスト 16件**（`src/**/*.test.ts`）:
+  - `ScenarioManager.test.ts`: トリガー条件(time/points)・Waveクリア・forceSetWave・targetWave ゲート。
+  - `ScenarioSchema.test.ts`: zod 検証。不正データ検出＋**出荷 default_scenario.json の検証通過（回帰防止）**＋追加フィールド許容。
+  - `EventBus.test.ts`: emitter セマンティクス。
+- **`ScenarioSchema.ts`（zod）**: `loadScenario`/`updateScenarioEvents` に組み込み済み。壊れたシナリオはロード時に「パス: メッセージ」形式で console.error（最善努力で続行）。**テストの書き方の参考にすること**。
+- **未実施**: `EnemySpawnManager.getSpawnDelay` のテスト（EnemySpawnManager が Phaser を直接 import するため、Phase 3 の CombatContext で Phaser 依存を切ってから追加が効率的）。
+- 注: テストファイルが node 組み込みを使うため `tsconfig.app.json` の `types` に `"node"` を追加済み。
+
 ## 次のAI（アシスタント）への指示
 - このファイルは、異なるPC間で開発を引き継ぐ際に、担当AIがプロジェクトの全体像と進行状況を理解するためのものです。
+- **作業前に `npm test` と `npm run build` を実行**して現状を確認すること（テストが安全網）。
 - 大きな開発ステップが完了するごとに、このドキュメントの「現在の進捗・決定事項」および要件・仕様の追記を行ってください。
 - **型付きイベントの使い方**: 新しいイベントを足すときは `src/game/EventBus.ts` の `GameEventMap` にイベント名とペイロード型を追加してから emit/on する。全消しは `removeAll`、特定ハンドラ解除は `off(event, fn)`。
