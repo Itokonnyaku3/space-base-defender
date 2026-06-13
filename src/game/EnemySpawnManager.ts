@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { ENEMY_CONFIGS } from './configs/EnemyConfig';
+import { SPAWN_CONFIG } from './configs/SpawnConfig';
 import type { AIState } from './ai/EnemyPatternDB';
 import { EventBus } from './EventBus';
 
@@ -85,27 +86,18 @@ export class EnemySpawnManager {
     /**
      * 前線基地の生存数に基づいて、自動湧きの発生間隔ディレイ（ミリ秒）を算出します。
      * 基地が多いほど猛攻になり、壊すごとに湧きペースが穏やかになります。
-     * 
-     * - 基地4つ生存: 6秒 (6000ms)
-     * - 基地3つ生存: 8秒 (8000ms)
-     * - 基地2つ生存: 11秒 (11000ms)
-     * - 基地1つ生存: 15秒 (15000ms)
-     * - 基地0個（全滅）: 20秒 (20000ms)
+     * 具体的な間隔の数値は SPAWN_CONFIG（configs/SpawnConfig.ts）が単一情報源です。
      */
     public getSpawnDelay(): number {
         const activeOutpostsCount = this.outposts.getChildren().filter(o => o.active).length;
         const currentWave = (this.scene as any).scenarioManager?.getCurrentWaveId() || 'wave1';
 
-        // Wave 2 は輸送船護衛のため、自動湧き間隔を長め（14秒）に設定
+        // Wave 2 は輸送船護衛のため、自動湧き間隔を長めに設定
         if (currentWave === 'wave2') {
-            return 14000;
+            return SPAWN_CONFIG.wave2DelayMs;
         }
-        
-        if (activeOutpostsCount === 4) return 9000;
-        if (activeOutpostsCount === 3) return 12000;
-        if (activeOutpostsCount === 2) return 16000;
-        if (activeOutpostsCount === 1) return 22000;
-        return 28000; // 0個のときは28秒間隔
+
+        return SPAWN_CONFIG.delayByOutpostCountMs[activeOutpostsCount] ?? SPAWN_CONFIG.fallbackDelayMs;
     }
 
     /**

@@ -319,15 +319,17 @@ registerPattern('suicide_rush', (enemy, ctx, state, time) => { ... });
 
 **受け入れ条件**: `tintTopLeft` の grep がゼロ / hit 系メソッドが3個以下 / `scene as any` がゼロ / ゲームオーバーからリスタート可能
 
-### Phase 4: 設定とWaveの Single Source of Truth 化（2日）
-- [ ] `WeaponConfig` を実装と一致させ（long_range / machinegun）、MainScene の直書きパラメータを移管
-- [ ] `TurretConfig` の値を実装と一致させ、コードは config を参照
-- [ ] `WaveConfig.rules` の未実装ルール（allowBoost / maxTurrets / maxRelays）を**実装するか削除するか決めて**どちらかに倒す
+### Phase 4: 設定とWaveの Single Source of Truth 化（チューニング値は完了 2026-06-13）
+- [x] `WeaponConfig` を実装と一致させ（long_range / machinegun）、MainScene の直書きパラメータ（CT・威力・射程・弾速・加速・tint・音）を移管。CTゲージ・UI名も config 参照に
+- [x] `TurretConfig` の値を実装と一致（fireRate 500→5000、bulletSpeed 400→200、hp→maxHits 等の嘘を是正）させ、コードは config を参照（射程・連射・弾速・耐久・照準誤差・tint）
+- [x] **`SpawnConfig.ts` を新設**し、湧き間隔（基地数別 9/12/16/22/28秒・wave2=14秒・前哨射出25秒）を集約。`EnemySpawnManager`/`MainScene` が参照
+- [x] EnemySpawnManager のコメントと AI_HANDOVER の数値記載を削除し「config 参照」に書き換え（食い違い3重表記を解消）
+- [ ] `WaveConfig.rules` の未実装ルール（allowBoost / maxTurrets / maxRelays）→ **実装（現状維持の値で）して機能化**する方針。boost は全Wave true（現状=常時可）にしつつチェックを実装し、将来 false にすれば per-wave で gating 可能に（ユーザの「進行に応じた機能開放」設計に合致）
 - [ ] Wave 固有挙動（公転 / レーダー常時表示 / ドック回復）を `WaveConfig.rules` のフラグへ移す
-- [ ] Wave ID を文字列に統一（MainScene の `currentWave: number` を廃止）
-- [ ] EnemySpawnManager のコメントと AI_HANDOVER の数値記載を削除し「config 参照」に書き換え
+- [ ] Wave ID を文字列に統一（MainScene の `currentWave: number` を廃止）※最も侵襲的、要注意
 
-**受け入れ条件**: 「config の数値変更だけ」で武器CT・タレット連射・湧き間隔が変わることを実プレイで確認
+**受け入れ条件と結果（チューニング値）**: 「config の数値変更だけ」で武器CT・タレット連射・湧き間隔が変わる → ✅ 該当箇所のハードコードを全て config 参照に置換、値は現状と完全一致。`npm run build` グリーン、dev サーバーで起動・ポーズ往復・コンソールエラーゼロを確認。**実プレイでの最終確認（発射感・湧き）はユーザ推奨**。
+**残**: 上記 Wave 系3項目（rules機能化・Wave固有挙動のフラグ化・Wave ID統一）。
 
 ### Phase 5: テスト導入（1〜2日）
 - [ ] `vitest` を devDependencies に追加
@@ -364,5 +366,5 @@ registerPattern('suicide_rush', (enemy, ctx, state, time) => { ... });
 | 1 ファイル分割 | ✅ 完了 | 2026-06-13 | Claude | audio/visuals/constants 分離。MainScene 2855→2206行。敵発射音を復元。2000行未満は Phase 3 へ |
 | 2 型基盤 | ✅ 核は完了 | 2026-06-13 | Claude | 型付きEventBus(13イベント)+off安全化+strict化。EntityData は Phase 3 へ移動。Lint 53 据置 |
 | 3 戦闘系統合 | 未着手 | - | - | EntityData アクセサ・CombatContext(scene as any 解消) を含む |
-| 4 設定一元化 | 未着手 | - | - | |
+| 4 設定一元化 | 🟡 チューニング値完了 | 2026-06-13 | Claude | Weapon/Turret/Spawn を config 化（受け入れ条件の核を達成）。Wave系3項目が残 |
 | 5 テスト | 未着手 | - | - | |

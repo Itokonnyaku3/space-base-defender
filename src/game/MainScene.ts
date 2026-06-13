@@ -4,6 +4,7 @@ import type { ScenarioAction } from './ScenarioManager';
 import { EventBus } from './EventBus';
 import { WEAPON_CONFIGS } from './configs/WeaponConfig';
 import { TURRET_CONFIGS } from './configs/TurretConfig';
+import { SPAWN_CONFIG } from './configs/SpawnConfig';
 import { ENEMY_CONFIGS } from './configs/EnemyConfig';
 import { EnemyPatternDB, type AIState } from './ai/EnemyPatternDB';
 import { EnemySpawnManager } from './EnemySpawnManager';
@@ -696,25 +697,23 @@ export default class MainScene extends Phaser.Scene {
         bullet.setData('startX', this.player.x);
         bullet.setData('startY', this.player.y);
         
-        let speed = 350;
         const angle = this.player.rotation - Math.PI / 2;
+        const weapon = WEAPON_CONFIGS[this.currentWeapon];
 
-        if (this.currentWeapon === 'long_range') {
-            bullet.setTint(0x00ffff);
-            bullet.setData('maxRange', 4000); // マップ拡張に対応するため 4000px に拡大
-            bullet.setData('damage', 10);
-            bullet.setData('weaponType', 'long_range');
+        bullet.setTint(weapon.bulletTint);
+        bullet.setData('maxRange', weapon.maxRange);
+        bullet.setData('damage', weapon.damage);
+        bullet.setData('weaponType', this.currentWeapon);
+        // 加速する武器（長距離弾）は段階加速のため発射時刻と角度を記録する
+        if (weapon.accel) {
             bullet.setData('spawnTime', time);
             bullet.setData('fireAngle', angle);
-            speed = 25; // 初速を半分 (50 -> 25) に変更
-            this.lastFired = time + 5000; // 5秒
+        }
+        const speed = weapon.speed;
+        this.lastFired = time + weapon.cooldownMs;
+        if (weapon.sound === 'laser') {
             SoundEffects.playLaser();
         } else {
-            bullet.setTint(0xffaa00); // オレンジ
-            bullet.setData('maxRange', 150); // 150px
-            bullet.setData('damage', 5);
-            bullet.setData('weaponType', 'machinegun');
-            this.lastFired = time + 500; // 0.5秒
             SoundEffects.playMachinegun();
         }
         
@@ -746,7 +745,7 @@ export default class MainScene extends Phaser.Scene {
                 turret.setBlendMode(Phaser.BlendModes.SCREEN);
                 turret.setImmovable(true);
                 turret.setData('lastFired', 0); 
-                turret.setData('hits', 5);
+                turret.setData('hits', TURRET_CONFIGS.standard.maxHits);
                 
                 // デバッグログ通知
                 EventBus.emit('debug-log-add', {
@@ -811,7 +810,7 @@ export default class MainScene extends Phaser.Scene {
         const turret = child as Phaser.Physics.Arcade.Sprite;
         
         let closestEnemy: Phaser.Physics.Arcade.Sprite | null = null;
-        let closestDist = 250; // 射程（中距離）
+        let closestDist = TURRET_CONFIGS.standard.range; // 射程（外だし設定）
 
         const enemyChildren = this.enemies.getChildren() as Phaser.Physics.Arcade.Sprite[];
         for (const enemy of enemyChildren) {
@@ -834,20 +833,20 @@ export default class MainScene extends Phaser.Scene {
             const angleDiff = Math.abs(Phaser.Math.Angle.Wrap(turret.rotation - targetRotation));
 
             // 向きが合っていて（誤差約10度: 0.17rad以内）、リロード完了時のみ発射
-            if (time > turretLastFired && angleDiff < 0.17) {
+            if (time > turretLastFired && angleDiff < TURRET_CONFIGS.standard.aimToleranceRad) {
                 const bullet = this.turretBullets.get(turret.x, turret.y) as Phaser.Physics.Arcade.Sprite;
                 if (bullet) {
                     bullet.setActive(true);
                     bullet.setVisible(true);
                     if (bullet.body) bullet.body.enable = true; // 物理ボディを有効化
-                    bullet.setTint(0x00ffff); // 水色
+                    bullet.setTint(TURRET_CONFIGS.standard.bulletTint); // 水色
                     bullet.setData('startX', turret.x);
                     bullet.setData('startY', turret.y);
                     bullet.setData('isEnemyBullet', false);
                     
                     const fireAngle = turret.rotation - Math.PI / 2;
-                    this.physics.velocityFromRotation(fireAngle, 200, bullet.body!.velocity); // 弾速半分(400->200)
-                    turret.setData('lastFired', time + 5000); // 5秒間隔
+                    this.physics.velocityFromRotation(fireAngle, TURRET_CONFIGS.standard.bulletSpeed, bullet.body!.velocity);
+                    turret.setData('lastFired', time + TURRET_CONFIGS.standard.fireRateMs);
                 }
             }
         }
@@ -859,15 +858,17 @@ export default class MainScene extends Phaser.Scene {
     group.getChildren().forEach((child) => {
         const bullet = child as Phaser.Physics.Arcade.Sprite;
         if (bullet.active) {
-            // 長距離弾の段階的加速（2秒かけて25から350へリニア補間）
-            if (bullet.getData('weaponType') === 'long_range') {
+            // 加速する武器（長距離弾）の段階的加速を WeaponConfig から適用
+            const weaponType = bullet.getData('weaponType') as keyof typeof WEAPON_CONFIGS | undefined;
+            const accel = weaponType ? WEAPON_CONFIGS[weaponType].accel : undefined;
+            if (accel && weaponType) {
+                const baseSpeed = WEAPON_CONFIGS[weaponType].speed;
                 const spawnTime = bullet.getData('spawnTime') as number || 0;
                 const elapsed = time - spawnTime;
-                const duration = 2000; // 加速時間を倍 (1000ms -> 2000ms) に変更
-                const progress = Phaser.Math.Clamp(elapsed / duration, 0, 1);
-                const currentSpeed = Phaser.Math.Linear(25, 350, progress); // 初期速度を 25 に変更
+                const progress = Phaser.Math.Clamp(elapsed / accel.durationMs, 0, 1);
+                const currentSpeed = Phaser.Math.Linear(baseSpeed, accel.maxSpeed, progress);
                 const fireAngle = bullet.getData('fireAngle') as number || 0;
-                
+
                 this.physics.velocityFromRotation(fireAngle, currentSpeed, bullet.body!.velocity);
             }
 
@@ -1305,12 +1306,12 @@ export default class MainScene extends Phaser.Scene {
     this.triggerExplosion(e.x, e.y, 15, 0xff5500);
     e.destroy();
     
-    const currentHits = (t.getData('hits') as number ?? 5) - 1;
+    const currentHits = (t.getData('hits') as number ?? TURRET_CONFIGS.standard.maxHits) - 1;
     t.setData('hits', currentHits);
 
     EventBus.emit('debug-log-add', {
         type: 'damage',
-        message: `[Damage] 防衛タレットが敵の ${enemyName} と衝突！ 耐久度: ${currentHits}/5`
+        message: `[Damage] 防衛タレットが敵の ${enemyName} と衝突！ 耐久度: ${currentHits}/${TURRET_CONFIGS.standard.maxHits}`
     });
     
     t.setTint(0xff3333);
@@ -1340,7 +1341,7 @@ export default class MainScene extends Phaser.Scene {
     if (this.playerHp > 0) {
         this.playerHpText.setText(`自機HP: ${this.playerHp}`);
     }
-    const weaponName = this.currentWeapon === 'long_range' ? '長距離弾' : '短距離マシンガン';
+    const weaponName = WEAPON_CONFIGS[this.currentWeapon].name;
     this.pointsText.setText(`武器: ${weaponName} ([D]キーで切替)  ポイント: ${this.points} (タレット: ${TURRET_CONFIGS.standard.cost} [SPACE] / 中継レーダー: 10 [R])`);
 
     if (this.boostText) {
@@ -1538,8 +1539,8 @@ export default class MainScene extends Phaser.Scene {
 
             const lastRepaired = ally.getData('lastRepaired') as number || 0;
             if (time > lastRepaired + 5000) {
-                const currentHits = targetTurret.getData('hits') as number ?? 5;
-                if (currentHits < 5) {
+                const currentHits = targetTurret.getData('hits') as number ?? TURRET_CONFIGS.standard.maxHits;
+                if (currentHits < TURRET_CONFIGS.standard.maxHits) {
                     targetTurret.setData('hits', currentHits + 1);
                     this.triggerExplosion(targetTurret.x, targetTurret.y, 8, 0x00ffaa);
                 }
@@ -1700,8 +1701,8 @@ export default class MainScene extends Phaser.Scene {
   }
 
   private updateOutpostsSpawn(time: number) {
-      // 25秒ごとに生存している前線基地から敵戦闘機をスポーンさせる (10秒から25秒に緩和)
-      const spawnInterval = 25000; 
+      // 生存している前線基地から定期的に敵戦闘機をスポーンさせる（間隔は SpawnConfig 参照）
+      const spawnInterval = SPAWN_CONFIG.outpostSpawnIntervalMs;
       if (time > this.lastOutpostSpawn) {
           this.outposts.getChildren().forEach((child) => {
               const outpost = child as Phaser.Physics.Arcade.Sprite;
@@ -2040,7 +2041,7 @@ export default class MainScene extends Phaser.Scene {
     const barY = cY + (1040 - cY) * uiScale; 
 
     // クールダウン計算
-    const cooldownDuration = this.currentWeapon === 'long_range' ? 5000 : 500;
+    const cooldownDuration = WEAPON_CONFIGS[this.currentWeapon].cooldownMs;
     const elapsedSinceLastFire = time - (this.lastFired - cooldownDuration);
     const progress = Phaser.Math.Clamp(elapsedSinceLastFire / cooldownDuration, 0, 1);
 
