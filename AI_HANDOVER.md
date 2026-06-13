@@ -120,6 +120,17 @@
   - Phaser↔React の状態同期は `pause-state-changed` イベント（Pキー操作でもボタン表示が追従）。
 - **検証**: `npm run build` グリーン。dev サーバーで実機検証済み（Pキー双方向トグル・ボタン双方向トグル・状態同期・コンソールエラーゼロを DOM 操作で確認）。
 
+## 【2026/06/13】Phase 2: 型基盤の導入（核は完了）
+- **型付きイベント**: `EventBus.ts` を**型付きファサード**に置換（`core/GameEvents.ts` は新設せず、低チャーンで全呼び出し側をその場で型チェック）。
+  - `GameEventMap` に全13イベントのペイロード型を集約。イベント名タイポ・不正ペイロードがコンパイルエラーに。
+  - 共有型 `RadarData`/`RadarEntity`/`VisionCircle`/`DebugLogPayload`/`LogType` も `EventBus.ts` に集約（`RadarUI` は重複定義を削除して import）。
+  - `off(event, fn)` はハンドラ必須化、意図的な全消しは `removeAll(event)` に分離（無ハンドラ off 9箇所を変換）。
+- **strict 化**: `tsconfig.app.json` に `"strict": true`。エラー0件でビルド成功。
+- **検証**: `npm run build` グリーン。dev サーバーでポーズ往復（React↔Phaser の emit/on）が新ファサード経由で成立・コンソールエラーゼロを確認。
+- **Phase 3 へ移動した項目**: `EntityData` アクセサ（`getData('hp')` 置換）は戦闘コードへの高チャーン変更のため、Phase 3 の戦闘系分離・`CombatContext` 導入と同じ変更・同じ検証でまとめて行う。
+- **既知の残課題**: Lint は 53 件のまま（主因は `ScenarioEditor` の React/any と `scene as any` 11箇所）。`scene as any` は Phase 3 の `CombatContext` で解消予定。
+
 ## 次のAI（アシスタント）への指示
 - このファイルは、異なるPC間で開発を引き継ぐ際に、担当AIがプロジェクトの全体像と進行状況を理解するためのものです。
 - 大きな開発ステップが完了するごとに、このドキュメントの「現在の進捗・決定事項」および要件・仕様の追記を行ってください。
+- **型付きイベントの使い方**: 新しいイベントを足すときは `src/game/EventBus.ts` の `GameEventMap` にイベント名とペイロード型を追加してから emit/on する。全消しは `removeAll`、特定ハンドラ解除は `off(event, fn)`。

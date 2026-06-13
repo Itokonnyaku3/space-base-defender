@@ -297,20 +297,27 @@ registerPattern('suicide_rush', (enemy, ctx, state, time) => { ... });
 - MainScene.ts 行数 → **2855 → 2206 行（-23%）**。当初目標「2000行未満」には未達だが、これは純粋に機械的・低リスクで切り出せる関心事（audio/visuals）を出し切った結果。残りの削減（HUD の `UIScene` 化・戦闘系の `systems/` 化）は**ロジック分離を伴うため Phase 3 で実施**し、2000行未満はその達成目標へ繰り下げる。
 - 副次効果: `as any` を 2 件削減済み（Lint 55→53）。新規ファイル（GameTextures/Starfield/constants）は Lint エラーゼロ。
 
-### Phase 2: 型基盤の導入（1〜2日）
-- [ ] `core/GameEvents.ts`（型付きイベント）を導入し、全 emit/on/off を置換
-- [ ] `core/EntityData.ts`（hp/faction/aiState 等のアクセサ）を導入し、`getData('hp')` 直書きを置換
-- [ ] `tsconfig.app.json` に `"strict": true` を追加し、出たエラーを潰す（量が多ければ `strictNullChecks` から段階導入）
+### Phase 2: 型基盤の導入 ✅ 核は完了 2026-06-13
+- [x] **型付きイベント**: `core/GameEvents.ts` を新設する代わりに、**`EventBus.ts` 自体を型付きファサードに置換**（低チャーンで全呼び出し側をその場で型チェック）。`GameEventMap`（13イベント）でイベント名・ペイロードをカタログ化。`RadarData`/`DebugLogPayload` 等の共有型も集約し、`RadarUI` は重複定義を削除して import。
+- [x] **off() の全消し事故を防止**: `off(event, fn)` をハンドラ必須にし、意図的な全消しは `removeAll(event)` に分離（§2.9/§3.3 の方針）。無ハンドラ off 9箇所を `removeAll` に変換。
+- [x] **strict 化**: `tsconfig.app.json` に `"strict": true`。事前調査どおりエラー0件でビルド成功（既存コードが `!`/`as` で型を抑止していたため）。
+- [ ] **`EntityData` アクセサ → Phase 3 へ移動**: `getData('hp')` 等の置換は、戦闘コード全体への高チャーン変更。これらの直書きは `as number` 等で Lint には影響せず、かつ本環境では戦闘全経路を実機自動検証できない。**Phase 3 の `CombatContext`/`systems` 分離と同じ変更・同じ検証でまとめて行う**方が安全なため移動。
 
-**受け入れ条件**: `EventBus.emit` の生文字列呼び出しが残存ゼロ / strict でビルド成功
+**受け入れ条件と結果**:
+- `EventBus.emit` の生文字列呼び出しが残存ゼロ → ✅ 全 emit/on/off が型付き `EventBus` 経由（イベント名は `GameEventMap` のキーで型チェック）。
+- strict でビルド成功 → ✅ `npm run build` グリーン。
+- 実機検証: dev サーバーでポーズ往復（React→Phaser→React の emit/on）が新ファサード経由で成立、コンソールエラーゼロ。
+- 補足: Lint は 53 件のまま（型付きイベントは `as any` を使わない設計だが、既存の `as any` は別箇所＝`ScenarioEditor` の React/any と `scene as any` 11箇所。後者は Phase 3 の型付き Context 導入で解消、前者は別途 Lint 一掃タスクとする）。
 
 ### Phase 3: 戦闘系の統合（2〜4日）
+- [ ] `core/EntityData.ts`（Phase 2 から移動）: hp/maxHp/faction/aiState/enemyId 等の型付きアクセサを導入し、`getData('hp')` 直書きを置換。戦闘系の分離と同時に行い、まとめて検証する
 - [ ] `BulletSystem`: 陣営別グループ（friendlyBullets / enemyBullets）へ再編。`fireBullet()` ファクトリ一本化。tint 比較による判定を全廃
 - [ ] `HealthSystem`: 15個の hit ハンドラを `applyDamage()` + `entity-destroyed` イベントへ集約
+- [ ] `CombatContext`（型付き）を導入し、`EnemyPatternDB`/`EnemySpawnManager` の `scene as any` 11箇所を解消（→ Lint も大きく減る）
 - [ ] 衝突登録を宣言的なテーブル（どのグループ×どのグループ→どの処理）に変換
-- [ ] `GameOverScene` を追加し、`scene.pause()` 直書き6箇所を「game-over イベント発火」に統一（リスタート実装）
+- [ ] `GameOverScene` を追加し、`triggerGameOver()`（現状は `scene.pause()` のみ）を「game-over イベント発火」に統一（リスタート実装）
 
-**受け入れ条件**: `tintTopLeft` の grep がゼロ / hit 系メソッドが3個以下 / ゲームオーバーからリスタート可能
+**受け入れ条件**: `tintTopLeft` の grep がゼロ / hit 系メソッドが3個以下 / `scene as any` がゼロ / ゲームオーバーからリスタート可能
 
 ### Phase 4: 設定とWaveの Single Source of Truth 化（2日）
 - [ ] `WeaponConfig` を実装と一致させ（long_range / machinegun）、MainScene の直書きパラメータを移管
@@ -355,7 +362,7 @@ registerPattern('suicide_rush', (enemy, ctx, state, time) => { ... });
 |---|---|---|---|---|
 | 0 安全網 | ✅ 完了 | 2026-06-13 | Claude | build 復旧・git 開始・check 追加。敵発射音の復元のみ Phase 1 へ |
 | 1 ファイル分割 | ✅ 完了 | 2026-06-13 | Claude | audio/visuals/constants 分離。MainScene 2855→2206行。敵発射音を復元。2000行未満は Phase 3 へ |
-| 2 型基盤 | 未着手 | - | - | |
-| 3 戦闘系統合 | 未着手 | - | - | |
+| 2 型基盤 | ✅ 核は完了 | 2026-06-13 | Claude | 型付きEventBus(13イベント)+off安全化+strict化。EntityData は Phase 3 へ移動。Lint 53 据置 |
+| 3 戦闘系統合 | 未着手 | - | - | EntityData アクセサ・CombatContext(scene as any 解消) を含む |
 | 4 設定一元化 | 未着手 | - | - | |
 | 5 テスト | 未着手 | - | - | |

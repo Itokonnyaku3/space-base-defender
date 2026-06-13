@@ -113,19 +113,19 @@ export class ScenarioManager {
         this.loadDefaultScenario();
 
         // 多重登録を防止するため、既存リスナーを一度解除してから登録する
-        EventBus.off('scenario-choice-selected');
+        EventBus.removeAll('scenario-choice-selected');
         EventBus.on('scenario-choice-selected', (data: { eventId: string, choice: 'yes' | 'no' }) => {
             this.handleChoice(data.eventId, data.choice);
         });
 
         // エディタからのリアルタイム注入イベント（ゲーム進行状態をリセットせずイベントデータのみ更新）
-        EventBus.off('scenario-inject');
+        EventBus.removeAll('scenario-inject');
         EventBus.on('scenario-inject', (data: ScenarioData) => {
             this.updateScenarioEvents(data);
         });
 
         // デバッグ用の強制Wave移行イベント登録
-        EventBus.off('force-change-wave');
+        EventBus.removeAll('force-change-wave');
         EventBus.on('force-change-wave', (waveId: string) => {
             this.forceSetWave(waveId);
         });

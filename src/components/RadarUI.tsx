@@ -1,30 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { EventBus } from '../game/EventBus';
-
-interface RadarEntity {
-    x: number;
-    y: number;
-}
-
-interface VisionCircle {
-    x: number;
-    y: number;
-    range: number;
-}
-
-interface RadarData {
-    player: { x: number; y: number; rotation: number };
-    base: RadarEntity;
-    camera?: { x: number; y: number; width: number; height: number };
-    turrets: RadarEntity[];
-    relays: RadarEntity[];
-    enemies: RadarEntity[];
-    motherships: RadarEntity[];
-    outposts: RadarEntity[];
-    allies: RadarEntity[];
-    visionCircles: VisionCircle[];
-    transportShip?: RadarEntity | null;
-}
+import { EventBus, type RadarData } from '../game/EventBus';
 
 interface RadarUIProps {
   radarDebugMode?: boolean;

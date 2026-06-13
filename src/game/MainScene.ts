@@ -234,22 +234,22 @@ export default class MainScene extends Phaser.Scene {
 
     // Scenario & Action Handling
     this.scenarioManager = new ScenarioManager();
-    EventBus.off('scenario-action-execute');
+    EventBus.removeAll('scenario-action-execute');
     EventBus.on('scenario-action-execute', (action: ScenarioAction) => {
         this.handleScenarioAction(action);
     });
 
-    EventBus.off('wave-changed');
+    EventBus.removeAll('wave-changed');
     EventBus.on('wave-changed', (nextWaveId: string) => {
         this.handleWaveTransition(nextWaveId);
     });
 
-    EventBus.off('toggle-radar-debug');
+    EventBus.removeAll('toggle-radar-debug');
     EventBus.on('toggle-radar-debug', (enabled: boolean) => {
         this.radarDebugMode = enabled;
     });
 
-    EventBus.off('view-change');
+    EventBus.removeAll('view-change');
     EventBus.on('view-change', (view: 'game' | 'editor') => {
         if (this.input && this.input.keyboard) {
             this.input.keyboard.enabled = (view === 'game');
@@ -361,7 +361,7 @@ export default class MainScene extends Phaser.Scene {
     window.addEventListener('keydown', this.pauseKeyHandler);
 
     // React 側のポーズボタンからのトグル要求（EventBus コールバックはシーン停止中も発火する）
-    EventBus.off('toggle-pause');
+    EventBus.removeAll('toggle-pause');
     EventBus.on('toggle-pause', () => this.togglePause());
 
     // シーン破棄時に window リスナーを解除（リーク防止）
@@ -374,7 +374,7 @@ export default class MainScene extends Phaser.Scene {
         window.removeEventListener('keydown', this.pauseKeyHandler);
         this.pauseKeyHandler = undefined;
     }
-    EventBus.off('toggle-pause');
+    EventBus.removeAll('toggle-pause');
   }
 
   private togglePause() {
