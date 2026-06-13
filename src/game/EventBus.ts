@@ -53,6 +53,7 @@ export interface GameEventMap {
     'toggle-pause': void;
     'pause-state-changed': boolean;
     'game-over-changed': boolean;
+    'restart-game': void;
     'force-change-wave': string;
     'scenario-choice-selected': { eventId: string; choice: 'yes' | 'no' };
     'scenario-trigger': ScenarioEvent;

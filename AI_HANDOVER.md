@@ -155,6 +155,13 @@
 - **未実施**: `EnemySpawnManager.getSpawnDelay` のテスト（EnemySpawnManager が Phaser を直接 import するため、Phase 3 の CombatContext で Phaser 依存を切ってから追加が効率的）。
 - 注: テストファイルが node 組み込みを使うため `tsconfig.app.json` の `types` に `"node"` を追加済み。
 
+## 【2026/06/13】Phase 3 着手: CombatScene 型付け / ゲームオーバー＆リスタート / 開始Wave是正
+- **`scene as any` 全廃**: `core/CombatScene.ts`（MainScene が implements）で `EnemyPatternDB`/`EnemySpawnManager` の scene を型付け（9箇所のキャスト除去）。型のみの変更で挙動不変。
+- **ゲームオーバー画面＋リスタート**: `triggerGameOver()` が GAME OVER オーバーレイ表示＋BGM停止＋`game-over-changed` 発火。`Enter` キー / React「⟳ リスタート」ボタン → `restartGame()` が**死亡した Wave を sessionStorage(`sbd_restart_wave`) に保存して全リロード**し、`loadScenario` がその Wave から復元。
+- **新規開始 Wave を Wave 1 に修正**: 開発用デフォルト（Wave 2 開始）を本来の Wave 1（チュートリアル）に。`MainScene.currentWave`=1、`ScenarioManager` 初期 currentWaveId='wave1'。`loadScenario` は sessionStorage の復元 Wave があればそれを、無ければ wave1 から開始。
+- **自動検証済み**: 起動時 Wave1 通信表示 / sessionStorage='wave5' で Wave5 復元(wave5 通信確認) / ポーズ回帰なし / コンソールエラーゼロ / build・test(16)グリーン。
+- **Phase 3 の残り（要・実機プレイ確認を伴う）**: BulletSystem（陣営判定の作り替え・`tintTopLeft` 廃止）、HealthSystem（15個の hit ハンドラを `applyDamage` に集約）、EntityData アクセサ、衝突登録の宣言的テーブル化。**これらは戦闘ロジックを変えるため、本環境では自動検証できず実機プレイ確認が必須**。
+
 ## 次のAI（アシスタント）への指示
 - このファイルは、異なるPC間で開発を引き継ぐ際に、担当AIがプロジェクトの全体像と進行状況を理解するためのものです。
 - **作業前に `npm test` と `npm run build` を実行**して現状を確認すること（テストが安全網）。

@@ -63,7 +63,7 @@ function App() {
           {/* ゲームオーバー時のリスタートボタン（全リロードで確実にリセット） */}
           {isGameOver && (
             <button
-              onClick={() => window.location.reload()}
+              onClick={() => EventBus.emit('restart-game')}
               style={{
                 position: 'absolute',
                 top: '58%',

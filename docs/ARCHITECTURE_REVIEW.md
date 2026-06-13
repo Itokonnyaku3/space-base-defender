@@ -315,7 +315,8 @@ registerPattern('suicide_rush', (enemy, ctx, state, time) => { ... });
 - [ ] `HealthSystem`: 15個の hit ハンドラを `applyDamage()` + `entity-destroyed` イベントへ集約
 - [x] **`CombatScene`（型付きインターフェース）を導入し `scene as any` を全廃**（2026-06-13）。`core/CombatScene.ts` を MainScene が implements、`EnemyPatternDB`/`EnemySpawnManager` の scene 引数を `CombatScene` 型に。9箇所の `(scene as any).X` を撲滅（型のみの変更＝コンパイル後JS不変）。残る `as any` は `waveProgress[key]` と `webkitAudioContext` のみ（scene 無関係）
 - [ ] 衝突登録を宣言的なテーブル（どのグループ×どのグループ→どの処理）に変換
-- [x] **リスタート実装**（2026-06-13）: `triggerGameOver()` を拡張し、GAME OVER オーバーレイ表示＋BGM停止＋`game-over-changed` 発火＋多重発火ガード。リスタートは **`Enter` キー / React「⟳ リスタート」ボタン → `window.location.reload()`**（全リロードで確実にリセット＝scene.restart の落とし穴を回避）。※専用 Scene ではなくオーバーレイ方式で実装。**ゲームオーバー発火の実挙動はプレイテストで確認（要・実機）**
+- [x] **リスタート実装**（2026-06-13）: `triggerGameOver()` を拡張し、GAME OVER オーバーレイ表示＋BGM停止＋`game-over-changed` 発火＋多重発火ガード。リスタートは **`Enter` キー / React「⟳ リスタート」ボタン → `restartGame()`**（死亡時の Wave を sessionStorage に保存して全リロード→`loadScenario` がその Wave から復元）。**死亡した Wave からやり直す**仕様。※専用 Scene ではなくオーバーレイ方式。
+- [x] **新規開始 Wave を Wave 1 に修正**（2026-06-13）: 開発用デフォルトだった「Wave 2 開始」を本来の Wave 1（チュートリアル）開始に。`MainScene.currentWave`/`ScenarioManager` の初期値を 1/wave1 に。**自動検証済み**: 起動時に Wave1 オープニング通信表示、sessionStorage='wave5' で Wave5 復元（wave5 通信を確認）、コンソールエラーゼロ、build/test(16)緑。
 
 **受け入れ条件**: `tintTopLeft` の grep がゼロ / hit 系メソッドが3個以下 / `scene as any` がゼロ（✅済）/ ゲームオーバーからリスタート可能（✅実装・要プレイテスト）
 

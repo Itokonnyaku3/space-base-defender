@@ -82,7 +82,7 @@ export default class MainScene extends Phaser.Scene implements CombatScene {
   private indicatorGraphics!: Phaser.GameObjects.Graphics;
   private cooldownWeaponText!: Phaser.GameObjects.Text;
   private isPointsEnabled: boolean = false;
-  private currentWave: number = 2;
+  private currentWave: number = 1;
   private activeOutpostAngle: number = 0;
 
   // ポーズ制御
@@ -371,17 +371,19 @@ export default class MainScene extends Phaser.Scene implements CombatScene {
     // ポーズ中/ゲームオーバー中は scene.update が止まるため、キーは window で直接拾う
     this.pauseKeyHandler = (e: KeyboardEvent) => {
         if (this.isGameOver) {
-            // ゲームオーバー中は Enter で最初からやり直す（全リロードで確実にリセット）
-            if (e.key === 'Enter') window.location.reload();
+            // ゲームオーバー中は Enter で死亡した Wave からやり直す
+            if (e.key === 'Enter') this.restartGame();
             return;
         }
         if (e.key === 'p' || e.key === 'P') this.togglePause();
     };
     window.addEventListener('keydown', this.pauseKeyHandler);
 
-    // React 側のポーズボタンからのトグル要求（EventBus コールバックはシーン停止中も発火する）
+    // React 側のポーズ/リスタートボタンからの要求（EventBus コールバックはシーン停止中も発火する）
     EventBus.removeAll('toggle-pause');
     EventBus.on('toggle-pause', () => this.togglePause());
+    EventBus.removeAll('restart-game');
+    EventBus.on('restart-game', () => this.restartGame());
 
     // シーン破棄時に window リスナーを解除（リーク防止）
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.cleanupPauseControls, this);
@@ -394,6 +396,19 @@ export default class MainScene extends Phaser.Scene implements CombatScene {
         this.pauseKeyHandler = undefined;
     }
     EventBus.removeAll('toggle-pause');
+    EventBus.removeAll('restart-game');
+  }
+
+  // ゲームオーバーから、死亡した Wave を保存して全リロードでやり直す。
+  // （全リロードにより Phaser/React/各種状態を確実にリセットしつつ、Wave だけ復元する）
+  private restartGame() {
+    if (!this.isGameOver) return;
+    try {
+      sessionStorage.setItem('sbd_restart_wave', this.scenarioManager.getCurrentWaveId());
+    } catch (e) {
+      console.warn('[MainScene] sessionStorage への保存に失敗。Wave 1 から再開します:', e);
+    }
+    window.location.reload();
   }
 
   private togglePause() {

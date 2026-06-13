@@ -53,7 +53,8 @@ describe('ScenarioManager', () => {
 
   it('クリア条件を満たすと次の Wave に進行する', () => {
     const sm = new ScenarioManager();
-    sm.loadScenario(baseScenario()); // wave2 開始
+    sm.loadScenario(baseScenario());
+    sm.forceSetWave('wave2'); // 開始 Wave は wave1 になったため、明示的に wave2 の状態にする
     const spy = vi.fn();
     EventBus.on('wave-changed', spy);
 

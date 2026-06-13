@@ -98,8 +98,8 @@ export class ScenarioManager {
     };
 
     // 現在のWave進行状態
-    private currentWaveId: string = 'wave2';
-    private waveStartTimes: Record<string, number> = { wave2: 0 };
+    private currentWaveId: string = 'wave1';
+    private waveStartTimes: Record<string, number> = { wave1: 0 };
     private lastElapsedTime: number = 0;
 
     // Wave進捗カウンター
@@ -194,8 +194,19 @@ export class ScenarioManager {
         this.dynamicEvents = data.dynamicEvents || {};
         this.currentActiveEvent = null;
         this.stateFlags.allyRescued = false; // フラグも初期状態にリセット
-        this.currentWaveId = 'wave2'; // Wave初期化
-        this.waveStartTimes = { wave2: 0 };
+        // 開始 Wave を決定: ゲームオーバーからの再開なら死亡時の Wave（sessionStorage）、無ければ Wave 1
+        let startWave = 'wave1';
+        try {
+            const restartWave = sessionStorage.getItem('sbd_restart_wave');
+            if (restartWave && this.waves[restartWave]) {
+                startWave = restartWave;
+            }
+            sessionStorage.removeItem('sbd_restart_wave');
+        } catch (e) {
+            console.warn('[ScenarioManager] sessionStorage が利用できません。Wave 1 から開始します:', e);
+        }
+        this.currentWaveId = startWave;
+        this.waveStartTimes = { [startWave]: 0 };
         this.lastElapsedTime = 0;
         this.waveProgress = {
             outpostsWeakCount: 1,
