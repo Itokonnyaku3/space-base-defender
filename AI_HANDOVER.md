@@ -160,7 +160,10 @@
 - **ゲームオーバー画面＋リスタート**: `triggerGameOver()` が GAME OVER オーバーレイ表示＋BGM停止＋`game-over-changed` 発火。`Enter` キー / React「⟳ リスタート」ボタン → `restartGame()` が**死亡した Wave を sessionStorage(`sbd_restart_wave`) に保存して全リロード**し、`loadScenario` がその Wave から復元。
 - **新規開始 Wave を Wave 1 に修正**: 開発用デフォルト（Wave 2 開始）を本来の Wave 1（チュートリアル）に。`MainScene.currentWave`=1、`ScenarioManager` 初期 currentWaveId='wave1'。`loadScenario` は sessionStorage の復元 Wave があればそれを、無ければ wave1 から開始。
 - **自動検証済み**: 起動時 Wave1 通信表示 / sessionStorage='wave5' で Wave5 復元(wave5 通信確認) / ポーズ回帰なし / コンソールエラーゼロ / build・test(16)グリーン。
-- **Phase 3 の残り（要・実機プレイ確認を伴う）**: BulletSystem（陣営判定の作り替え・`tintTopLeft` 廃止）、HealthSystem（15個の hit ハンドラを `applyDamage` に集約）、EntityData アクセサ、衝突登録の宣言的テーブル化。**これらは戦闘ロジックを変えるため、本環境では自動検証できず実機プレイ確認が必須**。
+- **BulletSystem（陣営判定）完了**: `tintTopLeft===0xff3333`（色比較）4箇所を `getData('isEnemyBullet')===true`（データフラグ）へ。色依存の当たり判定を撲滅。実機プレイ確認済み（ユーザー）。
+- **HealthSystem は部分実施**: 弾非アクティブ化の重複7箇所を `consumeBullet()` に集約。**15→3 の完全集約は見送り**（各ハンドラのダメージ量/HPキー/死亡ロジックの差異が大きく、自動検証不能な戦闘コードへの高リスク変更のため。ハンドラは正常動作中）。理由は ARCHITECTURE_REVIEW.md §Phase3 に記載。
+- **Phase 3 受け入れ条件 4つ中 3つ達成**（scene as any=0 / tintTopLeft=0 / リスタート可）。残「hit メソッド3個以下」は上記理由で意図的に見送り。
+- **Phase 3 の残り（将来・要・専用プレイテスト）**: hit ハンドラの完全集約（flash/damage 共通化含む）、EntityData アクセサ、陣営別弾グループ化、衝突登録の宣言的テーブル化。**戦闘ロジックを変えるため自動検証不能＝実機プレイ確認必須**。
 
 ## 次のAI（アシスタント）への指示
 - このファイルは、異なるPC間で開発を引き継ぐ際に、担当AIがプロジェクトの全体像と進行状況を理解するためのものです。
