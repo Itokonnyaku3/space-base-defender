@@ -324,12 +324,16 @@ registerPattern('suicide_rush', (enemy, ctx, state, time) => { ... });
 - [x] `TurretConfig` の値を実装と一致（fireRate 500→5000、bulletSpeed 400→200、hp→maxHits 等の嘘を是正）させ、コードは config を参照（射程・連射・弾速・耐久・照準誤差・tint）
 - [x] **`SpawnConfig.ts` を新設**し、湧き間隔（基地数別 9/12/16/22/28秒・wave2=14秒・前哨射出25秒）を集約。`EnemySpawnManager`/`MainScene` が参照
 - [x] EnemySpawnManager のコメントと AI_HANDOVER の数値記載を削除し「config 参照」に書き換え（食い違い3重表記を解消）
-- [ ] `WaveConfig.rules` の未実装ルール（allowBoost / maxTurrets / maxRelays）→ **実装（現状維持の値で）して機能化**する方針。boost は全Wave true（現状=常時可）にしつつチェックを実装し、将来 false にすれば per-wave で gating 可能に（ユーザの「進行に応じた機能開放」設計に合致）
-- [ ] Wave 固有挙動（公転 / レーダー常時表示 / ドック回復）を `WaveConfig.rules` のフラグへ移す
-- [ ] Wave ID を文字列に統一（MainScene の `currentWave: number` を廃止）※最も侵襲的、要注意
+- [x] `WaveConfig.rules` の未実装ルールを**機能化**: `allowBoost`（全Wave true=現状の常時可を維持、将来 false で per-wave gating 可能）、`maxTurrets`/`maxRelays`（未設定=無制限＝現状維持、設定すれば上限）。
+- [x] Wave 固有挙動を `rules` フラグへ（**dockRepair / radarAlwaysVisible**）。各読み出しは `?? (currentWave 基準)` フォールバック付き＝JSON 有無に関わらず挙動完全一致。JSON も現状一致値で設定。stale localStorage 対策として鮮度判定に新フラグ有無チェックを追加。
+  - ※ **公転（outpostOrbits）は flag 化を見送り**: 初期スポーンが `scenarioManager` 初期化前に走るため。Wave1 専用チュートリアル機構として `currentWave === 1` のまま。
+- [ ] **Wave ID を文字列に統一（`currentWave: number` 廃止）→ Phase 5（テスト導入後）に延期**。最も侵襲的（spawn/hitOutpost/遷移に分散）で、本環境では Wave遷移＋戦闘の全経路を自動検証できないため、テストの安全網ができてから実施。
 
-**受け入れ条件と結果（チューニング値）**: 「config の数値変更だけ」で武器CT・タレット連射・湧き間隔が変わる → ✅ 該当箇所のハードコードを全て config 参照に置換、値は現状と完全一致。`npm run build` グリーン、dev サーバーで起動・ポーズ往復・コンソールエラーゼロを確認。**実プレイでの最終確認（発射感・湧き）はユーザ推奨**。
-**残**: 上記 Wave 系3項目（rules機能化・Wave固有挙動のフラグ化・Wave ID統一）。
+**受け入れ条件と結果**:
+- 「config の数値変更だけ」で武器CT・タレット連射・湧き間隔が変わる → ✅ ハードコードを全て config 参照に置換、値は現状と完全一致。
+- Wave ルール（boost/設置上限/ドック回復/レーダー）が `WaveConfig.rules` で制御可能に → ✅ フォールバック付きで挙動不変のままデータ駆動化。
+- 検証: `npm run build` グリーン、dev サーバーで起動・ポーズ往復・localStorage 新規読込・コンソールエラーゼロ。**実プレイでの最終確認（発射感・ブースト・湧き）はユーザ推奨**。
+**残**: Wave ID 文字列統一のみ（Phase 5 帯）。
 
 ### Phase 5: テスト導入（1〜2日）
 - [ ] `vitest` を devDependencies に追加
@@ -366,5 +370,5 @@ registerPattern('suicide_rush', (enemy, ctx, state, time) => { ... });
 | 1 ファイル分割 | ✅ 完了 | 2026-06-13 | Claude | audio/visuals/constants 分離。MainScene 2855→2206行。敵発射音を復元。2000行未満は Phase 3 へ |
 | 2 型基盤 | ✅ 核は完了 | 2026-06-13 | Claude | 型付きEventBus(13イベント)+off安全化+strict化。EntityData は Phase 3 へ移動。Lint 53 据置 |
 | 3 戦闘系統合 | 未着手 | - | - | EntityData アクセサ・CombatContext(scene as any 解消) を含む |
-| 4 設定一元化 | 🟡 チューニング値完了 | 2026-06-13 | Claude | Weapon/Turret/Spawn を config 化（受け入れ条件の核を達成）。Wave系3項目が残 |
+| 4 設定一元化 | ✅ ほぼ完了 | 2026-06-13 | Claude | Weapon/Turret/Spawn config 化 + Waveルール機能化(boost/上限/dock/radar)。残=Wave ID文字列統一のみ(Phase 5帯) |
 | 5 テスト | 未着手 | - | - | |

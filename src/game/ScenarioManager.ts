@@ -58,6 +58,9 @@ export interface WaveConfig {
         allowBoost: boolean;
         maxTurrets?: number;
         maxRelays?: number;
+        // Wave 固有挙動フラグ（未設定時は MainScene が currentWave 基準にフォールバック）
+        dockRepair?: boolean;          // 自基地ドックで自機HPが回復する（旧 currentWave >= 3）
+        radarAlwaysVisible?: boolean;  // 戦霧を無視して敵をレーダー常時表示（旧 currentWave <= 3）
     };
     clearConditions: {
         destroyAllOutpostsWeak?: boolean;
@@ -138,13 +141,16 @@ export class ScenarioManager {
             if (localData) {
                 try {
                     const data = JSON.parse(localData) as ScenarioData;
-                    // 保存されているデータに wave3 の定義がない場合は、古いデータとみなして無視する
-                    if (data.waves && data.waves.wave3) {
+                    // 古いデータ（wave3 が無い、または新しい Wave ルールフラグを持たない）は無視して
+                    // default_scenario.json を読み直す。これにより旧 allowBoost:false 等の死に値で挙動が変わるのを防ぐ。
+                    const hasNewRuleFlags = data.waves?.wave1?.rules
+                        && 'radarAlwaysVisible' in data.waves.wave1.rules;
+                    if (data.waves && data.waves.wave3 && hasNewRuleFlags) {
                         console.log("[ScenarioManager] Loaded scenario from localStorage");
                         this.loadScenario(data);
                         return;
                     } else {
-                        console.log("[ScenarioManager] LocalStorage scenario is outdated (missing wave3). Falling back to default_scenario.json");
+                        console.log("[ScenarioManager] LocalStorage scenario is outdated (missing wave3 or new rule flags). Falling back to default_scenario.json");
                         localStorage.removeItem('space_base_defender_scenario');
                     }
                 } catch (e) {

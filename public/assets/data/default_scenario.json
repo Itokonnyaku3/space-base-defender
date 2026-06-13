@@ -6,7 +6,9 @@
       "rules": {
         "allowTurretPlacement": false,
         "allowRelayPlacement": true,
-        "allowBoost": false
+        "allowBoost": true,
+        "dockRepair": false,
+        "radarAlwaysVisible": true
       },
       "clearConditions": {
         "destroyAllOutpostsWeak": true
@@ -18,7 +20,9 @@
       "rules": {
         "allowTurretPlacement": false,
         "allowRelayPlacement": true,
-        "allowBoost": false
+        "allowBoost": true,
+        "dockRepair": false,
+        "radarAlwaysVisible": true
       },
       "clearConditions": {
         "transportShipReachedBase": true
@@ -30,7 +34,9 @@
       "rules": {
         "allowTurretPlacement": true,
         "allowRelayPlacement": true,
-        "allowBoost": false
+        "allowBoost": true,
+        "dockRepair": true,
+        "radarAlwaysVisible": true
       },
       "clearConditions": {
         "destroyAllOutposts": true
@@ -42,7 +48,9 @@
       "rules": {
         "allowTurretPlacement": true,
         "allowRelayPlacement": true,
-        "allowBoost": false
+        "allowBoost": true,
+        "dockRepair": true,
+        "radarAlwaysVisible": false
       },
       "clearConditions": {
         "turretKills": 30
@@ -54,7 +62,9 @@
       "rules": {
         "allowTurretPlacement": true,
         "allowRelayPlacement": true,
-        "allowBoost": false
+        "allowBoost": true,
+        "dockRepair": true,
+        "radarAlwaysVisible": false
       },
       "clearConditions": {
         "destroyCarrierMothership": true

@@ -450,9 +450,10 @@ export default class MainScene extends Phaser.Scene {
         });
     }
 
-    // Wキーでブースト発動（10秒間、回数制限3回）
+    // Wキーでブースト発動（10秒間、回数制限3回）。Wave の allowBoost ルールで許可制御
     if (Phaser.Input.Keyboard.JustDown(this.wKey)) {
-        if (!this.isBoosting && this.boostCharges > 0) {
+        const allowBoost = this.scenarioManager.getCurrentWaveConfig()?.rules.allowBoost ?? true;
+        if (allowBoost && !this.isBoosting && this.boostCharges > 0) {
             this.isBoosting = true;
             this.boostEndTime = time + 10000;
             this.boostCharges--;
@@ -499,13 +500,15 @@ export default class MainScene extends Phaser.Scene {
         this.nextBoostRegenTime = 0;
     }
 
-    // Wave 3以降限定：自基地ドック（接触＆静止）での自機HP回復機能
+    // 自基地ドック（接触＆静止）での自機HP回復機能。Wave の dockRepair ルールで許可制御
+    // （未設定時は従来どおり Wave 3 以降）
     const distToBase = Phaser.Math.Distance.Between(this.player.x, this.player.y, this.base.x, this.base.y);
     const isTouchingBase = distToBase < 150;
     const playerBody = this.player.body as Phaser.Physics.Arcade.Body;
     const isStopped = playerBody ? playerBody.velocity.length() < 0.1 : false;
+    const dockRepair = this.scenarioManager.getCurrentWaveConfig()?.rules.dockRepair ?? (this.currentWave >= 3);
 
-    if (this.currentWave >= 3 && isTouchingBase && isStopped && this.playerHp < 100) {
+    if (dockRepair && isTouchingBase && isStopped && this.playerHp < 100) {
         const lastHpRegen = this.player.getData('lastHpRegenTime') as number || 0;
         if (time > lastHpRegen + 1000) { // 1秒ごと
             this.playerHp = Math.min(100, this.playerHp + 2); // 2回復
@@ -734,6 +737,15 @@ export default class MainScene extends Phaser.Scene {
             return;
         }
 
+        const maxTurrets = waveConfig?.rules.maxTurrets;
+        if (maxTurrets !== undefined && this.turrets.getChildren().filter(t => t.active).length >= maxTurrets) {
+            EventBus.emit('debug-log-add', {
+                type: 'system',
+                message: `タレットの設置上限（${maxTurrets}基）に達しています`
+            });
+            return;
+        }
+
         if (this.points >= TURRET_CONFIGS.standard.cost) {
             this.points -= TURRET_CONFIGS.standard.cost;
             this.updateUI();
@@ -764,6 +776,15 @@ export default class MainScene extends Phaser.Scene {
             EventBus.emit('debug-log-add', {
                 type: 'system',
                 message: `現在のWaveでは中継レーダーを設置できません`
+            });
+            return;
+        }
+
+        const maxRelays = waveConfig?.rules.maxRelays;
+        if (maxRelays !== undefined && this.relays.getChildren().filter(r => r.active).length >= maxRelays) {
+            EventBus.emit('debug-log-add', {
+                type: 'system',
+                message: `中継レーダーの設置上限（${maxRelays}基）に達しています`
             });
             return;
         }
@@ -1911,7 +1932,7 @@ export default class MainScene extends Phaser.Scene {
       const radarEnemies: { x: number; y: number }[] = [];
       this.enemies.getChildren().forEach((child) => {
           const e = child as Phaser.Physics.Arcade.Sprite;
-          const isAlwaysVisible = this.currentWave <= 3;
+          const isAlwaysVisible = this.scenarioManager.getCurrentWaveConfig()?.rules.radarAlwaysVisible ?? (this.currentWave <= 3);
           if (e.active && (isAlwaysVisible || isInVision(e.x, e.y))) {
               radarEnemies.push({ x: e.x, y: e.y });
           }

@@ -137,7 +137,12 @@
 - **数値食い違いの是正**: コメント/ドキュメントの古い湧き間隔記述を削除し「config 参照」へ（実装・コメント・本書で3重に食い違っていた問題を解消）。
 - **重要**: これらの値の真実は `src/game/configs/` です。挙動を変えたいときはコードではなく config を編集してください。値はすべて変更前と完全一致＝挙動不変。
 - **検証**: `npm run build` グリーン。dev サーバーで起動・ポーズ往復・コンソールエラーゼロ。**発射感・湧きの実プレイ確認は推奨**。
-- **残（Phase 4 後半）**: ① `WaveConfig.rules` の未実装ルール（allowBoost/maxTurrets/maxRelays）を「現状維持の値で機能化」 ② Wave固有挙動（公転/レーダー常時表示/ドック回復）を rules フラグへ ③ Wave ID の文字列統一（`currentWave: number` 廃止、最も侵襲的）。
+- **Phase 4 後半（Wave ルール）完了**:
+  - `WaveConfig.rules` を機能化: `allowBoost`（全Wave true=現状維持、将来 false で gating 可）、`maxTurrets`/`maxRelays`（未設定=無制限、設定で上限）。
+  - Wave 固有挙動を rules フラグへ: `dockRepair`（旧 currentWave>=3）/`radarAlwaysVisible`（旧 currentWave<=3）。読み出しは `?? (currentWave 基準)` フォールバック付きで挙動完全一致。JSON も現状一致値に設定。
+  - stale localStorage 対策: 鮮度判定に新フラグ有無チェックを追加（旧 allowBoost:false 等で挙動が変わるのを防止）。
+  - **公転は flag 化見送り**（初期スポーンが scenarioManager 初期化前のため）。Wave1 専用機構として `currentWave === 1` 維持。
+- **Phase 4 の唯一の残**: Wave ID の文字列統一（`currentWave: number` 廃止）。最も侵襲的（spawn/hitOutpost/遷移に分散）かつ自動検証困難のため、**Phase 5（テスト導入）後に実施予定**。
 
 ## 次のAI（アシスタント）への指示
 - このファイルは、異なるPC間で開発を引き継ぐ際に、担当AIがプロジェクトの全体像と進行状況を理解するためのものです。
