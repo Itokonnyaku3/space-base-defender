@@ -82,7 +82,13 @@ export default class MainScene extends Phaser.Scene {
   private isPointsEnabled: boolean = false;
   private currentWave: number = 2;
   private activeOutpostAngle: number = 0;
-  
+
+  // ポーズ制御
+  private isPaused: boolean = false;
+  private isGameOver: boolean = false;
+  private pauseOverlay!: Phaser.GameObjects.Container;
+  private pauseKeyHandler?: (e: KeyboardEvent) => void;
+
   constructor() {
     super('MainScene');
   }
@@ -322,6 +328,84 @@ export default class MainScene extends Phaser.Scene {
     }).setScrollFactor(0).setDepth(101).setOrigin(1, 0.5).setScale(uiScale);
 
     this.drawWeaponIndicator();
+
+    // ポーズ機能のセットアップ（オーバーレイ生成・入力リスナー登録）
+    this.setupPauseControls();
+  }
+
+  // ===== ポーズ機能 =====
+
+  private setupPauseControls() {
+    const cam = this.cameras.main;
+    const Z = cam.zoom;
+    const cX = cam.width / 2;
+    const cY = cam.height / 2;
+
+    // 画面全体を覆う半透明オーバーレイ＋中央テキスト。
+    // ポーズ中もシーンの描画は継続するため、表示/非表示の切り替えだけで機能する。
+    const dark = this.add.rectangle(0, 0, WORLD_SIZE, WORLD_SIZE, 0x02040a, 0.72);
+    const title = this.add.text(0, -28, '一時停止  /  PAUSED', {
+        fontSize: '40px', color: '#e2e8f0', fontStyle: 'bold', fontFamily: 'Inter, Roboto, Arial'
+    }).setOrigin(0.5);
+    const hint = this.add.text(0, 30, 'P キー または 画面右上のボタンで再開', {
+        fontSize: '16px', color: '#94a3b8', fontFamily: 'Inter, Roboto, Arial'
+    }).setOrigin(0.5);
+
+    this.pauseOverlay = this.add.container(cX, cY, [dark, title, hint]);
+    this.pauseOverlay.setScrollFactor(0).setDepth(2000).setScale(1 / Z).setVisible(false);
+
+    // ポーズ中は scene.update が止まるため、復帰キーは window で直接拾う
+    this.pauseKeyHandler = (e: KeyboardEvent) => {
+        if (e.key === 'p' || e.key === 'P') this.togglePause();
+    };
+    window.addEventListener('keydown', this.pauseKeyHandler);
+
+    // React 側のポーズボタンからのトグル要求（EventBus コールバックはシーン停止中も発火する）
+    EventBus.off('toggle-pause');
+    EventBus.on('toggle-pause', () => this.togglePause());
+
+    // シーン破棄時に window リスナーを解除（リーク防止）
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, this.cleanupPauseControls, this);
+    this.events.once(Phaser.Scenes.Events.DESTROY, this.cleanupPauseControls, this);
+  }
+
+  private cleanupPauseControls() {
+    if (this.pauseKeyHandler) {
+        window.removeEventListener('keydown', this.pauseKeyHandler);
+        this.pauseKeyHandler = undefined;
+    }
+    EventBus.off('toggle-pause');
+  }
+
+  private togglePause() {
+    if (this.isGameOver) return;          // ゲームオーバー中は復帰させない
+    if (this.isPaused) this.resumeGame();
+    else this.pauseGame();
+  }
+
+  private pauseGame() {
+    if (this.isPaused || this.isGameOver) return;
+    this.isPaused = true;
+    this.pauseOverlay.setVisible(true);
+    MusicSynthesizer.pausePlayback();
+    EventBus.emit('pause-state-changed', true);
+    this.scene.pause();   // 以降このシーンの update/physics/timer はすべて凍結
+  }
+
+  private resumeGame() {
+    if (!this.isPaused) return;
+    this.isPaused = false;
+    this.scene.resume();
+    this.pauseOverlay.setVisible(false);
+    MusicSynthesizer.resumePlayback();
+    EventBus.emit('pause-state-changed', false);
+  }
+
+  // ゲームオーバー時の共通処理（フラグを立ててシーンを停止）。
+  // ポーズ機能がこの状態を誤って解除しないよう isGameOver を使う。
+  private triggerGameOver() {
+    this.isGameOver = true;
+    this.scene.pause();
   }
 
   update(time: number) {
@@ -931,7 +1015,7 @@ export default class MainScene extends Phaser.Scene {
         this.playerHpText.setColor('#ff0000');
         this.triggerExplosion(this.player.x, this.player.y, 40, 0x00ffff);
         this.player.setVisible(false);
-        this.scene.pause();
+        this.triggerGameOver();
     } else {
         this.player.setTint(0xff0000);
         this.time.delayedCall(100, () => {
@@ -961,7 +1045,7 @@ export default class MainScene extends Phaser.Scene {
     if (this.baseHp <= 0) {
         this.baseHpText.setText('基地崩壊 (GAME OVER)');
         this.baseHpText.setColor('#ff0000');
-        this.scene.pause();
+        this.triggerGameOver();
     } else {
         this.base.setTint(0xff0000);
         this.time.delayedCall(100, () => {
@@ -1001,7 +1085,7 @@ export default class MainScene extends Phaser.Scene {
     if (this.baseHp <= 0) {
         this.baseHpText.setText('基地崩壊 (GAME OVER)');
         this.baseHpText.setColor('#ff0000');
-        this.scene.pause();
+        this.triggerGameOver();
     } else {
         this.updateUI();
         this.base.setTint(0xff0000);
@@ -1196,7 +1280,7 @@ export default class MainScene extends Phaser.Scene {
               this.playerHpText.setColor('#ff0000');
               this.triggerExplosion(this.player.x, this.player.y, 40, 0x00ffff);
               this.player.setVisible(false);
-              this.scene.pause();
+              this.triggerGameOver();
           } else {
               this.player.setTint(0xff0000);
               this.time.delayedCall(100, () => {
@@ -2115,7 +2199,7 @@ export default class MainScene extends Phaser.Scene {
           
           this.playerHpText.setText('輸送船大破 (GAME OVER)');
           this.playerHpText.setColor('#ff0000');
-          this.scene.pause();
+          this.triggerGameOver();
       }
   }
 
@@ -2158,7 +2242,7 @@ export default class MainScene extends Phaser.Scene {
               
               this.playerHpText.setText('輸送船大破 (GAME OVER)');
               this.playerHpText.setColor('#ff0000');
-              this.scene.pause();
+              this.triggerGameOver();
           }
       }
   }

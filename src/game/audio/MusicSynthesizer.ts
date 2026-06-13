@@ -53,6 +53,24 @@ export class MusicSynthesizer {
     }
   }
 
+  // ゲームのポーズ用: 再生中ならBGMを一時停止し、再生中だったことを覚えておく。
+  private static wasPlayingBeforePause: boolean = false;
+
+  public static pausePlayback() {
+    this.wasPlayingBeforePause = this.isPlaying;
+    if (this.isPlaying) {
+      this.stop();
+    }
+  }
+
+  // ポーズ解除時: ポーズ前に再生中だったパターンを頭から再開する。
+  public static resumePlayback() {
+    if (this.wasPlayingBeforePause) {
+      this.wasPlayingBeforePause = false;
+      this.selectPattern(this.currentPattern);
+    }
+  }
+
   private static scheduler() {
     if (!this.isPlaying) return;
     const ctx = this.getContext();

@@ -111,6 +111,15 @@
 - **検証**: `npm run build` グリーン。dev サーバーで Phaser 正常起動・コンソールエラーゼロを確認（描画スクショは WebGL canvas のため取得不可＝ツール制約。簡単な実機プレイ確認を推奨）。Lint は 53 のまま（新規ファイルはエラーゼロ）。
 - **次のステップ**: Phase 2（型付きイベント `core/GameEvents.ts`・`EntityData` アクセサ・TypeScript strict 化 + Lint 一掃）。`MainScene` の 2000行未満化は HUD の UIScene 化を行う Phase 3 で達成予定。
 
+## 【2026/06/13】ポーズ機能を追加（リファクタとは独立した機能追加）
+- **操作**: `P`キー、または画面右上の「⏸ 一時停止 / ▶ 再開」ボタン（App.tsx）でトグル。
+- **挙動**: `MainScene` で `this.scene.pause()/resume()`（update・物理・タイマーを凍結）＋ `MusicSynthesizer.pausePlayback()/resumePlayback()` でBGM停止/再開 ＋ 中央に半透明オーバーレイ表示。
+- **設計上の要点**:
+  - ポーズ中は `scene.update` が止まるため、**復帰キーは window の keydown リスナーで拾う**（`setupPauseControls`）。React ボタンは EventBus `toggle-pause` 経由（EventBus コールバックはシーン停止中も発火する）。
+  - ゲームオーバー処理を `triggerGameOver()` に集約（`isGameOver` フラグ）し、**ゲームオーバー中は P を無効化**して誤復帰を防止。
+  - Phaser↔React の状態同期は `pause-state-changed` イベント（Pキー操作でもボタン表示が追従）。
+- **検証**: `npm run build` グリーン。dev サーバーで実機検証済み（Pキー双方向トグル・ボタン双方向トグル・状態同期・コンソールエラーゼロを DOM 操作で確認）。
+
 ## 次のAI（アシスタント）への指示
 - このファイルは、異なるPC間で開発を引き継ぐ際に、担当AIがプロジェクトの全体像と進行状況を理解するためのものです。
 - 大きな開発ステップが完了するごとに、このドキュメントの「現在の進捗・決定事項」および要件・仕様の追記を行ってください。

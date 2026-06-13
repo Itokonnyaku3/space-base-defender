@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import PhaserGame from './components/PhaserGame';
 import CommunicationUI from './components/CommunicationUI';
 import RadarUI from './components/RadarUI';
@@ -10,6 +10,7 @@ import './App.css';
 function App() {
   const [view, setView] = useState<'game' | 'editor'>('game');
   const [debugMode, setDebugMode] = useState<boolean>(false);
+  const [isPaused, setIsPaused] = useState<boolean>(false);
 
   const handleSetView = (newView: 'game' | 'editor') => {
     setView(newView);
@@ -24,6 +25,19 @@ function App() {
       message: `デバッグモードを ${nextMode ? '有効' : '無効'} にしました`
     });
   };
+
+  const handleTogglePause = () => {
+    EventBus.emit('toggle-pause');
+  };
+
+  // Phaser 側のポーズ状態（Pキー操作を含む）をボタン表示に同期
+  useEffect(() => {
+    const onPauseChange = (paused: boolean) => setIsPaused(paused);
+    EventBus.on('pause-state-changed', onPauseChange);
+    return () => {
+      EventBus.off('pause-state-changed', onPauseChange);
+    };
+  }, []);
 
   return (
     <div className="app-container" style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden', backgroundColor: '#000', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
@@ -41,7 +55,7 @@ function App() {
             <div style={{
               position: 'absolute',
               top: '12px',
-              right: '340px',
+              right: '490px',
               zIndex: 1000,
               display: 'flex',
               alignItems: 'center',
@@ -81,8 +95,32 @@ function App() {
             </div>
           )}
 
+          {/* ポーズ／再開ボタン（常時表示） */}
+          <button
+            onClick={handleTogglePause}
+            style={{
+              position: 'absolute',
+              top: '12px',
+              right: '345px',
+              zIndex: 1000,
+              padding: '8px 16px',
+              backgroundColor: isPaused ? 'rgba(34, 197, 94, 0.2)' : 'rgba(15, 23, 42, 0.85)',
+              border: isPaused ? '1px solid #22c55e' : '1px solid #1e293b',
+              color: isPaused ? '#4ade80' : '#cbd5e1',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontWeight: 600,
+              fontSize: '13px',
+              backdropFilter: 'blur(4px)',
+              boxShadow: '0 4px 6px rgba(0,0,0,0.3)',
+              transition: 'all 0.2s'
+            }}
+          >
+            {isPaused ? '▶ 再開' : '⏸ 一時停止'}
+          </button>
+
           {/* デバッグモードトグルボタン */}
-          <button 
+          <button
             onClick={handleToggleDebugMode}
             style={{
               position: 'absolute',
