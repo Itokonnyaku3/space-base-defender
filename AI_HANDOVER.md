@@ -177,6 +177,24 @@
 - **検証**: `npm run check` グリーン。dev サーバーでゲーム起動＋**シナリオエディタを開いてイベント一覧表示**＋コンソールエラーゼロを確認（型は実行時に消えるため挙動保存）。
 - 注: ScenarioEditor の動的フィールド更新は `unknown`＋局所キャストで型付け（編集UI特有のため）。
 
+## 【2026/06/14】ゲームデザイン着手 ＋ Wave5 ボス「巨大戦列艦」Phase A 完了
+> リファクタの一区切り後、ゲーム性向上に着手。各 Wave の「面白さ」を定義してから敵の出現・行動を設計する方針。最初に Wave5 ボスを実装。
+- **設計書**: `docs/superpowers/specs/2026-06-14-wave5-battleship-boss-design.md`（戦略ギミックの全体像。Phase B 含む）。
+- **実装計画**: `docs/superpowers/plans/2026-06-14-wave5-battleship-boss-phaseA.md`（TDD 純ロジック＋Phaser本体ループの 9 タスク）。
+- **コンセプト**: 画面 1/3 を占める横長の巨大戦列艦が基地へ低速進軍。**戦略的選択**＝(1) 4つの推進機関を潰して進軍を止める→全破壊で攻撃が波動砲へ移行、(2) 露出した波動砲(30秒チャージ)に**長距離弾を4発**当てて撃破（当てるとチャージ中エネルギーで自爆）。チャージ完了で基地に40ダメージ＋**ビーム経路上の自機は即死**。
+- **アーキテクチャ（単一責務に分離）**:
+  - `src/game/configs/BossConfig.ts` … **調整値の単一情報源**（baseAdvanceSpeed=30px/秒, engineCount=4, engineHp=50, cannon.chargeMs=30000/baseDamage=40/longRangeHitsToDestroy=4, reachBaseDamage=100）。挙動を変えたいときはここを編集。
+  - `src/game/bosses/BattleshipState.ts` … **Phaser非依存の純ロジック**（フェーズ遷移・速度=base×生存機関/総数・チャージ・命中数）。`BattleshipState.test.ts` で 6 件テスト。
+  - `src/game/bosses/Battleship.ts` … Phaser 実体（スプライト生成・進軍は**px/秒×deltaMsでフレーム非依存**・部位追従・チャージ演出・撃破）。
+  - `src/game/MainScene.ts` … 統合（`spawnBattleship`／コライダー登録＝弾×機関は `checkEnemyBulletHit` で敵弾除外・弾×波動砲は long_range かつ チャージ中のみ／砲撃時のビーム即死・基地ダメージ／撃破・到達ダメージ）。`battleshipColliders` で登録コライダーを保持し Wave遷移/撃破時に撤去（多重登録防止）。
+  - `src/game/visuals/GameTextures.ts` … `battleship_hull/engine/cannon` の暫定テクスチャ。
+  - シナリオ `public/assets/data/default_scenario.json` … wave5 から `spawn_mothership` を撤廃（戦艦は `handleWaveTransition('wave5')` が生成）。通信2件を戦艦戦の誘導に更新。
+- **検証**: `npm run check` 緑（build+lint+**22**テスト、JSON検証含む）。実機スモーク＝wave5 起動でボス通信表示・デバッグでのライブ wave5 遷移ともにコンソールエラー0（spawn＋updateループがクラッシュしない）。**最終コードレビュー（別AI）実施済み＝指摘のライフサイクル/防御を修正反映**。
+- **要・実機プレイテスト（自動検証不能＝照準/射撃の自動化困難）**: 機関破壊→減速→全破壊で波動砲露出→30秒チャージゲージ→長距離弾4発で自爆、ビーム即死、基地到達ダメージ。**戦闘の手触り・バランス（速度30/HP/チャージ30秒）は実プレイで調整**。
+- **Phase B（未実装・別計画）**: 戦艦左右の**発射台×2**＋**防壁×4**＋射出される敵（迎撃機/爆撃機）。発射台は防壁を壊すと破壊可能、破壊で射出停止。
+- **既知の体裁メモ**: デバッグUI/Wave名が旧称「巨大母船ボス決戦/敵母船殲滅指令」のまま（勝利条件キー `destroyCarrierMothership`/進捗 `mothershipDestroyed` も流用）。動作は正常だが、戦列艦テーマに改名するかは要判断。
+- **ブランチ運用**: 当初 feature ブランチ予定だったが `main` 上で段階コミット（OneDrive 配下のため worktree 同期競合を回避する方針）。Phase A は `becefbe`〜`ade9e75`。
+
 ## 次のAI（アシスタント）への指示
 - このファイルは、異なるPC間で開発を引き継ぐ際に、担当AIがプロジェクトの全体像と進行状況を理解するためのものです。
 - **作業前に `npm run check`（tsc＋eslint＋vitest）を実行**して現状を確認すること（緑が基準＝赤くしたら直す）。
