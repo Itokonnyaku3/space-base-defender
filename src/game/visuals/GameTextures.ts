@@ -143,4 +143,18 @@ export function createGameTextures(scene: Phaser.Scene) {
     graphics.fillCircle(12, 12, 3);
     graphics.generateTexture('relay', 24, 24);
     graphics.destroy();
+
+    // Wave 5 ボス（巨大戦列艦）の暫定テクスチャ（最終アセットは後日差し替え）
+    if (!scene.textures.exists('battleship_hull')) {
+        const bg = scene.add.graphics();
+        bg.fillStyle(0x2a3550, 1); bg.fillRoundedRect(0, 0, 320, 110, 14);
+        bg.fillStyle(0x3d4a6b, 1); bg.fillRoundedRect(8, 8, 304, 94, 10);
+        bg.generateTexture('battleship_hull', 320, 110); bg.clear();
+        bg.fillStyle(0xff8800, 1); bg.fillRoundedRect(0, 0, 34, 26, 4);
+        bg.generateTexture('battleship_engine', 34, 26); bg.clear();
+        bg.fillStyle(0x00e5ff, 1); bg.fillCircle(22, 22, 22);
+        bg.fillStyle(0xffffff, 1); bg.fillCircle(22, 22, 8);
+        bg.generateTexture('battleship_cannon', 44, 44);
+        bg.destroy();
+    }
 }
