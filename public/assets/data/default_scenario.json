@@ -379,7 +379,7 @@
       "hasTriggered": false,
       "sender": "operator",
       "senderName": "アルバイトのオペレーター",
-      "message": "ジャミング発信源の特定に成功！ ですが、自基地のすぐ近くに巨大な熱源が接近中！",
+      "message": "ジャミング発信源を特定！ ……巨大戦列艦が接近中！ まず推進機関を破壊して進軍を止めて！",
       "avatarType": "wave",
       "expression": "anger",
       "uid": "evt_1780925887190_15_zn8f95shy"
@@ -392,15 +392,9 @@
       "hasTriggered": false,
       "sender": "captain",
       "senderName": "機械職人",
-      "message": "つ、ついに本丸のお出ましじゃ！ 巨大母船が出現したぞ、基地が壊される前に壊せ！",
+      "message": "全機関を潰せば奴は波動砲を露出させる！ チャージ中に長距離弾を4発撃ち込め！ ビームに当たるな、一撃で消し飛ぶぞ！",
       "avatarType": "hologram",
       "expression": "anger",
-      "actions": [
-        {
-          "type": "spawn_mothership",
-          "params": {}
-        }
-      ],
       "uid": "evt_1780925887190_16_73n8ynyjd"
     }
   ],

@@ -70,11 +70,13 @@ export class Battleship {
     update(deltaMs: number): void {
         if (this.state.isDefeated()) return;
 
-        const speed = this.state.currentSpeed();
+        const speed = this.state.currentSpeed(); // px/秒
         const ang = Phaser.Math.Angle.Between(this.hull.x, this.hull.y, this.base.x, this.base.y);
         if (speed > 0) {
-            this.hull.x += Math.cos(ang) * speed;
-            this.hull.y += Math.sin(ang) * speed;
+            // フレームレート非依存にするため deltaMs でスケール
+            const step = speed * (deltaMs / 1000);
+            this.hull.x += Math.cos(ang) * step;
+            this.hull.y += Math.sin(ang) * step;
         }
         this.hull.rotation = ang;
 

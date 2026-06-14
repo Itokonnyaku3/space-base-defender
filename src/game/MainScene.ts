@@ -5,6 +5,8 @@ import { EventBus } from './EventBus';
 import { WEAPON_CONFIGS } from './configs/WeaponConfig';
 import { TURRET_CONFIGS } from './configs/TurretConfig';
 import { SPAWN_CONFIG } from './configs/SpawnConfig';
+import { Battleship } from './bosses/Battleship';
+import { BOSS_CONFIG } from './configs/BossConfig';
 import { ENEMY_CONFIGS } from './configs/EnemyConfig';
 import { EnemyPatternDB, type AIState } from './ai/EnemyPatternDB';
 import { EnemySpawnManager } from './EnemySpawnManager';
@@ -84,6 +86,9 @@ export default class MainScene extends Phaser.Scene implements CombatScene {
   private isPointsEnabled: boolean = false;
   private currentWave: number = 1;
   private activeOutpostAngle: number = 0;
+
+  // Wave 5 ボス（巨大戦列艦）
+  private battleship: Battleship | null = null;
 
   // ポーズ制御
   private isPaused: boolean = false;
@@ -597,6 +602,7 @@ export default class MainScene extends Phaser.Scene implements CombatScene {
     this.updateAllies(time);
     this.updateMotherships(time);
     this.updateOutpostsSpawn(time);
+    if (this.battleship) this.battleship.update(this.game.loop.delta);
 
     // Wave 1 の場合、敵基地（前哨基地）を本部の周りで公転移動させる (半径 900px の近距離に変更)
     if (this.currentWave === 1) {
@@ -1836,6 +1842,11 @@ export default class MainScene extends Phaser.Scene implements CombatScene {
           this.transportShip = null;
       }
 
+      if (this.battleship) {
+          this.battleship.destroy();
+          this.battleship = null;
+      }
+
       this.playerHp = 100;
       this.baseHp = 100;
 
@@ -1875,11 +1886,7 @@ export default class MainScene extends Phaser.Scene implements CombatScene {
           this.currentWave = 5;
           this.isPointsEnabled = true;
           this.scenarioManager.setWaveProgress('mothershipDestroyed', 0);
-          // 巨大母船のデバッグ自動スポーン
-          this.handleScenarioAction({
-              type: 'spawn_mothership',
-              params: {}
-          });
+          this.spawnBattleship();
           this.updateUI();
       }
   }
@@ -1902,6 +1909,95 @@ export default class MainScene extends Phaser.Scene implements CombatScene {
           }
       });
       this.updateEnemySpawnRate();
+  }
+
+  // ===== Wave 5 ボス（巨大戦列艦） =====
+
+  private spawnBattleship() {
+      // 基地の北 約1500px に出現し、基地へ進軍する
+      const boss = new Battleship(this, this.base, (x, y, n, tint) => this.triggerExplosion(x, y, n, tint));
+      boss.spawn(this.base.x, this.base.y - 1500);
+      this.battleship = boss;
+
+      // 砲撃完了 → 基地ダメージ＋ビーム即死判定
+      boss.onCannonFire = () => this.onBattleshipCannonFire(boss);
+      // 進軍を止められず基地へ到達 → 大ダメージ
+      boss.onReachBase = () => {
+          this.baseHp = Math.max(0, this.baseHp - BOSS_CONFIG.battleship.reachBaseDamage);
+          this.updateUI();
+          if (this.baseHp <= 0) {
+              this.baseHpText.setText('基地崩壊 (GAME OVER)');
+              this.baseHpText.setColor('#ff0000');
+              this.triggerGameOver();
+          }
+      };
+      // 波動砲破壊で撃破 → Wave5 クリア（既存の destroyCarrierMothership 条件を流用）
+      boss.onDefeated = () => {
+          SoundEffects.playExplosion();
+          this.scenarioManager.setWaveProgress('mothershipDestroyed', 1);
+      };
+
+      // 機関は全武器で破壊可（敵弾は checkEnemyBulletHit で除外）
+      this.physics.add.collider(this.bullets, boss.engines, (b, e) => this.onBulletHitEngine(boss, b, e), this.checkEnemyBulletHit, this);
+      this.physics.add.collider(this.turretBullets, boss.engines, (b, e) => this.onBulletHitEngine(boss, b, e), this.checkEnemyBulletHit, this);
+      this.physics.add.collider(this.allyBullets, boss.engines, (b, e) => this.onBulletHitEngine(boss, b, e), undefined, this);
+      // 波動砲は自機の長距離弾のみ・露出(チャージ)中のみ（process で限定）
+      this.physics.add.collider(
+          this.bullets, boss.cannonGroup,
+          (b) => this.onBulletHitCannon(boss, b),
+          (b) => (b as Phaser.Physics.Arcade.Sprite).getData('weaponType') === 'long_range' && boss.getState().isCharging(),
+          this,
+      );
+  }
+
+  private onBulletHitEngine(boss: Battleship, bullet: unknown, engine: unknown) {
+      const b = bullet as Phaser.Physics.Arcade.Sprite;
+      const e = engine as Phaser.Physics.Arcade.Sprite;
+      if (!b.active || !e.active) return;
+      const dmg = (b.getData('damage') as number) ?? 10;
+      this.consumeBullet(b);
+      this.triggerExplosion(b.x, b.y, 5, 0xffaa00);
+      boss.damageEngine(e, dmg);
+  }
+
+  private onBulletHitCannon(boss: Battleship, bullet: unknown) {
+      const b = bullet as Phaser.Physics.Arcade.Sprite;
+      if (!b.active) return;
+      this.consumeBullet(b);
+      this.triggerExplosion(b.x, b.y, 8, 0x00ffff);
+      boss.hitCannonByLongRange();
+  }
+
+  // 波動砲チャージ完了：ビーム経路に自機がいれば即死、そうでなければ基地に大ダメージ
+  private onBattleshipCannonFire(boss: Battleship) {
+      const c = boss.cannon;
+      const d = this.distToSegment(this.player.x, this.player.y, c.x, c.y, this.base.x, this.base.y);
+      if (d < 40) {
+          this.triggerExplosion(this.player.x, this.player.y, 40, 0x00ffff);
+          this.player.setVisible(false);
+          this.playerHpText.setText('自機大破 (GAME OVER)');
+          this.playerHpText.setColor('#ff0000');
+          this.triggerGameOver();
+          return;
+      }
+      this.baseHp = Math.max(0, this.baseHp - BOSS_CONFIG.battleship.cannon.baseDamage);
+      this.updateUI();
+      SoundEffects.playExplosion();
+      if (this.baseHp <= 0) {
+          this.baseHpText.setText('基地崩壊 (GAME OVER)');
+          this.baseHpText.setColor('#ff0000');
+          this.triggerGameOver();
+      }
+  }
+
+  // 点(px,py)と線分(ax,ay)-(bx,by)の距離
+  private distToSegment(px: number, py: number, ax: number, ay: number, bx: number, by: number): number {
+      const dx = bx - ax, dy = by - ay;
+      const len2 = dx * dx + dy * dy;
+      let t = len2 === 0 ? 0 : ((px - ax) * dx + (py - ay) * dy) / len2;
+      t = Math.max(0, Math.min(1, t));
+      const cx = ax + t * dx, cy = ay + t * dy;
+      return Math.hypot(px - cx, py - cy);
   }
 
   // 索敵サークルを合算し、スキャン成功した敵のみをReactのRadarUIに非同期送信

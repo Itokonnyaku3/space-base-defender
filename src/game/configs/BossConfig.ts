@@ -6,7 +6,7 @@ export interface WaveCannonConfig {
 }
 
 export interface BattleshipConfig {
-    baseAdvanceSpeed: number; // 全機関生存時の進軍速度 (px/frame)
+    baseAdvanceSpeed: number; // 全機関生存時の進軍速度 (px/秒・フレーム非依存)
     engineCount: number;
     engineHp: number;         // 機関1基あたり
     cannon: WaveCannonConfig;
@@ -15,7 +15,7 @@ export interface BattleshipConfig {
 
 export const BOSS_CONFIG: { battleship: BattleshipConfig } = {
     battleship: {
-        baseAdvanceSpeed: 8,
+        baseAdvanceSpeed: 30,
         engineCount: 4,
         engineHp: 50,
         cannon: {
