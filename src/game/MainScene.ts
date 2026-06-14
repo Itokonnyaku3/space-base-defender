@@ -1943,8 +1943,10 @@ export default class MainScene extends Phaser.Scene implements CombatScene {
           this.battleship = null;
       };
 
-      // 機関は全武器で破壊可（敵弾は checkEnemyBulletHit で除外）
       this.battleshipColliders = [
+          // 自機は巨大戦艦の船体を通り抜けられない（ダメージなしの物理ブロック。母船/前哨と同じ扱い）
+          this.physics.add.collider(this.player, boss.hull),
+          // 機関は全武器で破壊可（敵弾は checkEnemyBulletHit で除外）
           this.physics.add.collider(this.bullets, boss.engines, (b, e) => this.onBulletHitEngine(boss, b, e), this.checkEnemyBulletHit, this),
           this.physics.add.collider(this.turretBullets, boss.engines, (b, e) => this.onBulletHitEngine(boss, b, e), this.checkEnemyBulletHit, this),
           this.physics.add.collider(this.allyBullets, boss.engines, (b, e) => this.onBulletHitEngine(boss, b, e), undefined, this),
@@ -2074,6 +2076,15 @@ export default class MainScene extends Phaser.Scene implements CombatScene {
               radarMotherships.push({ x: m.x, y: m.y });
           }
       });
+
+      // Wave5 ボス：巨大戦列艦は常時レーダー表示（巨大な脅威のため）。船体＋残存機関をプロット
+      if (this.battleship && this.battleship.hull && this.battleship.hull.active) {
+          radarMotherships.push({ x: this.battleship.hull.x, y: this.battleship.hull.y });
+          this.battleship.engines.getChildren().forEach((child) => {
+              const e = child as Phaser.Physics.Arcade.Sprite;
+              if (e.active) radarMotherships.push({ x: e.x, y: e.y });
+          });
+      }
 
       const radarOutposts: { x: number; y: number }[] = [];
       this.outposts.getChildren().forEach((child) => {

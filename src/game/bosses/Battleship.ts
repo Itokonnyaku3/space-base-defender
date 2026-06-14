@@ -19,6 +19,8 @@ export class Battleship {
     cannon!: Phaser.Physics.Arcade.Sprite;
     cannonGroup!: Phaser.Physics.Arcade.Group;
     private gfx!: Phaser.GameObjects.Graphics;
+    private beamFlashMs = 0; // 発射閃光の残り時間（>0 の間だけ本物のビームを描画）
+    private animMs = 0;       // 演出用の時間アキュムレータ（予告線の点滅）
 
     // MainScene が接続するコールバック
     onCannonFire?: () => void;   // 波動砲チャージ完了（基地ダメージ＋即死判定は MainScene 側）
@@ -48,6 +50,11 @@ export class Battleship {
         this.hull = this.scene.physics.add.sprite(x, y, 'battleship_hull');
         this.hull.setImmovable(true);
         this.hull.rotation = Phaser.Math.Angle.Between(x, y, this.base.x, this.base.y);
+        // テクスチャは横長(320x110)だが船首を基地へ向けて約90°回転するため、
+        // 自機との物理判定が見た目と一致するよう当たり判定を縦横入替（110x320）して補正する。
+        // （本ボスは常に真北から基地へ直進＝回転はほぼ π/2 固定）
+        const hullBody = this.hull.body as Phaser.Physics.Arcade.Body | null;
+        if (hullBody) hullBody.setSize(this.hull.height, this.hull.width);
 
         this.engines = this.scene.physics.add.group();
         for (const off of this.engineOffsets) {
@@ -113,8 +120,13 @@ export class Battleship {
             if (this.cannon.body) this.cannon.body.enable = true;
         }
 
-        // チャージ進行→完了で砲撃通知
+        // 演出タイマー更新（点滅・閃光の減衰）
+        this.animMs += deltaMs;
+        if (this.beamFlashMs > 0) this.beamFlashMs -= deltaMs;
+
+        // チャージ完了 → 発射（本物のビーム閃光を焚いてから砲撃通知）
         if (this.state.tickCharge(deltaMs) === 'fire') {
+            this.beamFlashMs = 350;
             this.onCannonFire?.();
         }
 
@@ -123,19 +135,48 @@ export class Battleship {
 
     private drawCharge(): void {
         this.gfx.clear();
-        if (!this.state.isCharging()) return;
         const c = this.cannon;
+
+        // 発射の瞬間だけ描く「本物のビーム」：太い白芯＋赤グロー（予告線とは明確に別物）
+        if (this.beamFlashMs > 0) {
+            const a = Math.max(0, this.beamFlashMs / 350);
+            this.gfx.lineStyle(24, 0xff2233, 0.5 * a);
+            this.gfx.lineBetween(c.x, c.y, this.base.x, this.base.y);
+            this.gfx.lineStyle(8, 0xffffff, 0.9 * a);
+            this.gfx.lineBetween(c.x, c.y, this.base.x, this.base.y);
+        }
+
+        if (!this.state.isCharging()) return;
         const p = this.state.chargeProgress();
-        // ビーム予告線（波動砲→基地）。進捗で赤みと太さが増す
-        this.gfx.lineStyle(2 + p * 4, 0xff3344, 0.3 + p * 0.5);
-        this.gfx.lineBetween(c.x, c.y, this.base.x, this.base.y);
-        // チャージゲージ（波動砲周囲のリング）
+
+        // チャージ中の「予告線」：細い破線＋点滅。まだ発射していないことを示す（ビームと誤認させない）
+        const blink = 0.2 + 0.3 * (0.5 + 0.5 * Math.sin(this.animMs / 90));
+        this.gfx.lineStyle(1.5, 0xff5566, blink);
+        this.drawDashedLine(c.x, c.y, this.base.x, this.base.y, 16, 14);
+
+        // チャージゲージ（砲口リング）：進捗で満ちる
         this.gfx.lineStyle(4, 0x002233, 1);
         this.gfx.strokeCircle(c.x, c.y, 30);
         this.gfx.lineStyle(4, 0x00e5ff, 1);
         this.gfx.beginPath();
         this.gfx.arc(c.x, c.y, 30, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * p);
         this.gfx.strokePath();
+
+        // 砲口グロー：完成が近いほど明るく＝危険の予兆
+        this.gfx.fillStyle(0xff3344, 0.15 + 0.5 * p);
+        this.gfx.fillCircle(c.x, c.y, 10 + 16 * p);
+    }
+
+    /** 破線を引く（チャージ予告線を本物のビームと視覚的に区別するため）。 */
+    private drawDashedLine(x1: number, y1: number, x2: number, y2: number, dash: number, gap: number): void {
+        const dx = x2 - x1, dy = y2 - y1;
+        const len = Math.hypot(dx, dy);
+        if (len === 0) return;
+        const ux = dx / len, uy = dy / len;
+        for (let d = 0; d < len; d += dash + gap) {
+            const e = Math.min(d + dash, len);
+            this.gfx.lineBetween(x1 + ux * d, y1 + uy * d, x1 + ux * e, y1 + uy * e);
+        }
     }
 
     /** 機関への被弾（全武器）。HP を減らし、0 で破壊→減速。 */
