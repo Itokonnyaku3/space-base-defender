@@ -24,9 +24,10 @@ export default defineConfig({
                 
                 res.writeHead(200, { 'Content-Type': 'application/json' });
                 res.end(JSON.stringify({ status: 'ok', message: 'Scenario saved successfully' }));
-              } catch (err: any) {
+              } catch (err) {
+                const message = err instanceof Error ? err.message : String(err);
                 res.writeHead(500, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ status: 'error', message: err.message }));
+                res.end(JSON.stringify({ status: 'error', message }));
               }
             });
           } else {

@@ -1,10 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { EventBus } from '../game/EventBus';
 import type { ScenarioData, ScenarioEvent, ScenarioAction, DynamicEventDialogue } from '../game/ScenarioManager';
-import { ENEMY_CONFIGS } from '../game/configs/EnemyConfig';
+import { ENEMY_CONFIGS, type EnemyTypeConfig } from '../game/configs/EnemyConfig';
 
 interface ScenarioEditorProps {
   onBackToGame: () => void;
+}
+
+// ID 生成はコンポーネント外に置く（Date.now/Math.random をレンダー中に呼ばない＝純粋性ルールを満たす）
+function genUid(): string {
+  return `evt_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+}
+function genId(prefix: string): string {
+  return `${prefix}_${Date.now()}`;
 }
 
 const DEFAULT_EVENT: ScenarioEvent = {
@@ -32,7 +40,7 @@ export default function ScenarioEditor({ onBackToGame }: ScenarioEditorProps) {
   const [activeTab, setActiveTab] = useState<'edit' | 'graph' | 'json'>('graph');
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [jsonText, setJsonText] = useState('');
-  const [selectedDetailEnemyConfig, setSelectedDetailEnemyConfig] = useState<any>(null);
+  const [selectedDetailEnemyConfig, setSelectedDetailEnemyConfig] = useState<EnemyTypeConfig | null>(null);
 
   const draggedIndexRef = useRef<number | null>(null);
 
@@ -41,7 +49,7 @@ export default function ScenarioEditor({ onBackToGame }: ScenarioEditorProps) {
     e.dataTransfer.effectAllowed = 'move';
   };
 
-  const handleDragOver = (e: React.DragEvent, index: number) => {
+  const handleDragOver = (e: React.DragEvent, _index: number) => {
     e.preventDefault();
   };
 
@@ -61,12 +69,7 @@ export default function ScenarioEditor({ onBackToGame }: ScenarioEditorProps) {
     draggedIndexRef.current = null;
   };
   
-  // マウント時にデフォルトデータを読み込む
-  useEffect(() => {
-    loadDefault();
-  }, []);
-
-  const loadDefault = async () => {
+  async function loadDefault() {
     try {
       // localStorageに保存されている編集データを優先する
       const localData = localStorage.getItem('space_base_defender_scenario');
@@ -74,9 +77,9 @@ export default function ScenarioEditor({ onBackToGame }: ScenarioEditorProps) {
         try {
           const data = JSON.parse(localData);
           if (data.events) {
-            data.events = data.events.map((e: any, idx: number) => ({
+            data.events = data.events.map((e: ScenarioEvent & { uid?: string }) => ({
               ...e,
-              uid: e.uid || `evt_${Date.now()}_${idx}_${Math.random().toString(36).substr(2, 9)}`
+              uid: e.uid || genUid()
             }));
           }
           setScenarioData(data);
@@ -101,9 +104,9 @@ export default function ScenarioEditor({ onBackToGame }: ScenarioEditorProps) {
       if (response.ok) {
         const data = await response.json();
         if (data.events) {
-          data.events = data.events.map((e: any, idx: number) => ({
+          data.events = data.events.map((e: ScenarioEvent & { uid?: string }) => ({
             ...e,
-            uid: e.uid || `evt_${Date.now()}_${idx}_${Math.random().toString(36).substr(2, 9)}`
+            uid: e.uid || genUid()
           }));
         }
         setScenarioData(data);
@@ -115,7 +118,14 @@ export default function ScenarioEditor({ onBackToGame }: ScenarioEditorProps) {
     } catch (e) {
       console.error("Failed to fetch default scenario:", e);
     }
-  };
+  }
+
+  // マウント時にデフォルトデータを読み込む（loadDefault 定義後に呼ぶ＝宣言前使用を避ける）。
+  // localStorage がある場合は同期 setState になるが、初回ロードの意図的な一度きりの処理。
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadDefault();
+  }, []);
 
   // データの自動保存とゲームへの即時反映
   const updateScenarioData = (newData: ScenarioData) => {
@@ -146,9 +156,9 @@ export default function ScenarioEditor({ onBackToGame }: ScenarioEditorProps) {
       } else {
         alert('サーバーとの通信に失敗しました。');
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
-      alert('保存中にエラーが発生しました: ' + err.message);
+      alert('保存中にエラーが発生しました: ' + (err instanceof Error ? err.message : String(err)));
     }
   };
 
@@ -162,11 +172,11 @@ export default function ScenarioEditor({ onBackToGame }: ScenarioEditorProps) {
 
   // イベント追加
   const handleAddEvent = () => {
-    const newId = `event_${Date.now()}`;
+    const newId = genId('event');
     const newEvent: ScenarioEvent & { uid?: string } = {
       ...DEFAULT_EVENT,
       id: newId,
-      uid: `evt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      uid: genUid(),
       triggerValue: scenarioData.events.length > 0 
         ? Math.max(...scenarioData.events.map(e => e.triggerValue)) + 10000 
         : 5000
@@ -194,11 +204,11 @@ export default function ScenarioEditor({ onBackToGame }: ScenarioEditorProps) {
 
   // イベント複製
   const handleCloneEvent = (event: ScenarioEvent) => {
-    const newId = `${event.id}_copy_${Math.floor(Math.random() * 100)}`;
+    const newId = genId(`${event.id}_copy`);
     const cloned: ScenarioEvent & { uid?: string } = {
       ...JSON.parse(JSON.stringify(event)),
       id: newId,
-      uid: `evt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+      uid: genUid()
     };
     const updated = {
       ...scenarioData,
@@ -211,11 +221,11 @@ export default function ScenarioEditor({ onBackToGame }: ScenarioEditorProps) {
   const selectedEvent = scenarioData.events.find(e => e.id === selectedEventId);
 
   // イベントフィールド更新
-  const handleUpdateEventField = (key: keyof ScenarioEvent, value: any) => {
+  const handleUpdateEventField = (key: keyof ScenarioEvent, value: unknown) => {
     if (!selectedEventId) return;
     const updatedEvents = scenarioData.events.map(e => {
       if (e.id === selectedEventId) {
-        return { ...e, [key]: value };
+        return { ...e, [key]: value } as ScenarioEvent;
       }
       return e;
     });
@@ -225,23 +235,23 @@ export default function ScenarioEditor({ onBackToGame }: ScenarioEditorProps) {
     });
 
     if (key === 'id') {
-      setSelectedEventId(value);
+      setSelectedEventId(value as string);
     }
   };
 
   // アクション更新用ヘルパー
-  const handleUpdateChoicesActions = (choiceType: 'yes' | 'no', actionIndex: number, actionField: keyof ScenarioAction | 'params', value: any) => {
+  const handleUpdateChoicesActions = (choiceType: 'yes' | 'no', actionIndex: number, actionField: keyof ScenarioAction | 'params', value: unknown) => {
     if (!selectedEvent || !selectedEvent.choices) return;
     const choices = { ...selectedEvent.choices };
     const targetChoice = choices[choiceType];
-    
+
     if (actionField === 'params') {
       targetChoice.actions[actionIndex].params = {
         ...targetChoice.actions[actionIndex].params,
-        ...value
+        ...(value as Partial<ScenarioAction['params']>)
       };
     } else {
-      (targetChoice.actions[actionIndex] as any)[actionField] = value;
+      (targetChoice.actions[actionIndex] as unknown as Record<string, unknown>)[actionField] = value;
     }
 
     handleUpdateEventField('choices', choices);
@@ -269,17 +279,17 @@ export default function ScenarioEditor({ onBackToGame }: ScenarioEditorProps) {
     handleUpdateEventField('choices', choices);
   };
 
-  const handleUpdateEventActions = (actionIndex: number, actionField: keyof ScenarioAction | 'params', value: any) => {
+  const handleUpdateEventActions = (actionIndex: number, actionField: keyof ScenarioAction | 'params', value: unknown) => {
     if (!selectedEvent) return;
     const actions = selectedEvent.actions ? [...selectedEvent.actions] : [];
-    
+
     if (actionField === 'params') {
       actions[actionIndex].params = {
         ...actions[actionIndex].params,
-        ...value
+        ...(value as Partial<ScenarioAction['params']>)
       };
     } else {
-      (actions[actionIndex] as any)[actionField] = value;
+      (actions[actionIndex] as unknown as Record<string, unknown>)[actionField] = value;
     }
 
     handleUpdateEventField('actions', actions);
@@ -302,14 +312,14 @@ export default function ScenarioEditor({ onBackToGame }: ScenarioEditorProps) {
   };
 
   // ダイナミックイベントのセリフ追加・編集
-  const handleUpdateDynamicEvent = (type: 'relay_destroyed' | 'outpost_destroyed' | 'relay_placed', index: number, field: keyof DynamicEventDialogue | 'flag', value: any) => {
+  const handleUpdateDynamicEvent = (type: 'relay_destroyed' | 'outpost_destroyed' | 'relay_placed', index: number, field: keyof DynamicEventDialogue | 'flag', value: unknown) => {
     const events = scenarioData.dynamicEvents[type] ? [...scenarioData.dynamicEvents[type]!] : [];
     if (!events[index]) return;
 
     if (field === 'flag') {
-      events[index].flagCondition = value ? { flag: 'allyRescued', value } : undefined;
+      events[index].flagCondition = value ? { flag: 'allyRescued', value: value as boolean } : undefined;
     } else {
-      (events[index] as any)[field] = value;
+      (events[index] as unknown as Record<string, unknown>)[field] = value;
     }
 
     updateScenarioData({
@@ -364,7 +374,7 @@ export default function ScenarioEditor({ onBackToGame }: ScenarioEditorProps) {
       } else {
         alert('無効なシナリオデータ形式です。');
       }
-    } catch (e) {
+    } catch {
       alert('JSONのパースに失敗しました。書式を確認してください。');
     }
   };
@@ -445,9 +455,9 @@ export default function ScenarioEditor({ onBackToGame }: ScenarioEditorProps) {
                   if (response.ok) {
                     const data = await response.json();
                     if (data.events) {
-                      data.events = data.events.map((e: any, idx: number) => ({
+                      data.events = data.events.map((e: ScenarioEvent & { uid?: string }) => ({
                         ...e,
-                        uid: e.uid || `evt_${Date.now()}_${idx}_${Math.random().toString(36).substr(2, 9)}`
+                        uid: e.uid || genUid()
                       }));
                     }
                     setScenarioData(data);
@@ -551,7 +561,7 @@ export default function ScenarioEditor({ onBackToGame }: ScenarioEditorProps) {
         ].map(tab => (
           <button
             key={tab.id}
-            onClick={() => setActiveTab(tab.id as any)}
+            onClick={() => setActiveTab(tab.id as 'edit' | 'graph' | 'json')}
             style={{
               padding: '14px 20px',
               background: 'none',
@@ -602,7 +612,7 @@ export default function ScenarioEditor({ onBackToGame }: ScenarioEditorProps) {
               <div style={{ flex: 1, overflowY: 'auto', padding: '8px' }}>
                 {scenarioData.events.map((event, index) => (
                   <div 
-                    key={(event as any).uid || event.id}
+                    key={(event as ScenarioEvent & { uid?: string }).uid || event.id}
                     onClick={() => setSelectedEventId(event.id)}
                     draggable={true}
                     onDragStart={(e) => handleDragStart(e, index)}
@@ -1384,7 +1394,7 @@ export default function ScenarioEditor({ onBackToGame }: ScenarioEditorProps) {
 
                   {sortedEvents.map((evt) => {
                     let iconText = '💬';
-                    let hasEnemySpawn = false;
+                    let hasEnemySpawn: boolean;
                     const actions = evt.actions || [];
                     if (evt.choices) {
                       const yesActions = evt.choices.yes.actions || [];

@@ -250,7 +250,7 @@ export class ScenarioManager {
     }
 
     public setWaveProgress(key: keyof typeof this.waveProgress, value: number) {
-        (this.waveProgress as any)[key] = value;
+        this.waveProgress[key] = value;
         this.checkWaveClearConditions();
     }
 

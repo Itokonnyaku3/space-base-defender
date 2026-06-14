@@ -165,8 +165,20 @@
 - **Phase 3 受け入れ条件 4つ中 3つ達成**（scene as any=0 / tintTopLeft=0 / リスタート可）。残「hit メソッド3個以下」は上記理由で意図的に見送り。
 - **Phase 3 の残り（将来・要・専用プレイテスト）**: hit ハンドラの完全集約（flash/damage 共通化含む）、EntityData アクセサ、陣営別弾グループ化、衝突登録の宣言的テーブル化。**戦闘ロジックを変えるため自動検証不能＝実機プレイ確認必須**。
 
+## 【2026/06/13】Lint 一掃 完了 — `npm run check` が完全グリーンに
+- **Lint エラー 43 → 0**。`npm run check`（`tsc -b && eslint . && vitest run`）が exit 0。
+- 主な修正:
+  - eslint 設定に `argsIgnorePattern/varsIgnorePattern/caughtErrorsIgnorePattern: '^_'` を追加（`_` プレフィックス慣習を honor）。
+  - `no-explicit-any`（20件）: `any` を具体型／`unknown`＋局所キャストへ。`AIState` の `[key:string]:any` を明示プロパティ化。`window as any` を型付きキャストへ。`timerId: any` を `ReturnType<typeof setTimeout>` へ。
+  - `react-hooks/purity`（ScenarioEditor）: ID 生成の `Date.now()/Math.random()` を**コンポーネント外のモジュール関数** `genUid()/genId()` に移動。
+  - `react-hooks/immutability`: `loadDefault` を useEffect より前に定義。
+  - `react-hooks/set-state-in-effect`: 初回マウントロードの同期 setState は意図的なため局所 `eslint-disable-next-line`（理由コメント付き）。
+  - 未使用変数・`no-useless-assignment`・`prefer-const` を整理。
+- **検証**: `npm run check` グリーン。dev サーバーでゲーム起動＋**シナリオエディタを開いてイベント一覧表示**＋コンソールエラーゼロを確認（型は実行時に消えるため挙動保存）。
+- 注: ScenarioEditor の動的フィールド更新は `unknown`＋局所キャストで型付け（編集UI特有のため）。
+
 ## 次のAI（アシスタント）への指示
 - このファイルは、異なるPC間で開発を引き継ぐ際に、担当AIがプロジェクトの全体像と進行状況を理解するためのものです。
-- **作業前に `npm test` と `npm run build` を実行**して現状を確認すること（テストが安全網）。
+- **作業前に `npm run check`（tsc＋eslint＋vitest）を実行**して現状を確認すること（緑が基準＝赤くしたら直す）。
 - 大きな開発ステップが完了するごとに、このドキュメントの「現在の進捗・決定事項」および要件・仕様の追記を行ってください。
 - **型付きイベントの使い方**: 新しいイベントを足すときは `src/game/EventBus.ts` の `GameEventMap` にイベント名とペイロード型を追加してから emit/on する。全消しは `removeAll`、特定ハンドラ解除は `off(event, fn)`。

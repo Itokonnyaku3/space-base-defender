@@ -1,6 +1,6 @@
 export class MusicSynthesizer {
   private static ctx: AudioContext | null = null;
-  private static timerId: any = null;
+  private static timerId: ReturnType<typeof setTimeout> | null = null;
   private static currentPattern: number = 0; // 0: OFF, 1: Ambient, 2: Techno, 3: Minimal, 4: Space Opera
   
   private static currentBeat: number = 0;
@@ -13,7 +13,7 @@ export class MusicSynthesizer {
 
   private static getContext(): AudioContext {
     if (!this.ctx) {
-      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      const AudioContextClass = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
       this.ctx = new AudioContextClass();
     }
     if (this.ctx && this.ctx.state === 'suspended') {
@@ -209,7 +209,7 @@ export class MusicSynthesizer {
       
       osc.start(time);
       osc.stop(time + duration);
-    } catch (e) {
+    } catch {
       // ignore
     }
   }
@@ -232,7 +232,7 @@ export class MusicSynthesizer {
       
       osc.start(time);
       osc.stop(time + 0.5);
-    } catch (e) {
+    } catch {
       // ignore
     }
   }
@@ -254,7 +254,7 @@ export class MusicSynthesizer {
       
       osc.start(time);
       osc.stop(time + duration);
-    } catch (e) {
+    } catch {
       // ignore
     }
   }
@@ -286,7 +286,7 @@ export class MusicSynthesizer {
       
       source.start(time);
       source.stop(time + duration);
-    } catch (e) {
+    } catch {
       // ignore
     }
   }

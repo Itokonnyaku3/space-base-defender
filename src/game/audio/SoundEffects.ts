@@ -3,7 +3,7 @@ export class SoundEffects {
 
   private static getContext(): AudioContext {
     if (!this.ctx) {
-      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+      const AudioContextClass = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
       this.ctx = new AudioContextClass();
     }
     if (this.ctx && this.ctx.state === 'suspended') {

@@ -9,7 +9,9 @@ export interface AIState {
     squadronId?: string;
     splitRole?: 'base' | 'player';
     target?: Phaser.Physics.Arcade.Sprite;
-    [key: string]: any;
+    phase?: 'approach' | 'retreat'; // 楕円接近/離脱の往復フェーズ
+    orbitDir?: number;              // 旋回方向 (1 / -1)
+    side?: number;                  // 護衛機の左右配置 (1 / -1)
 }
 
 export class EnemyPatternDB {
@@ -167,7 +169,7 @@ export class EnemyPatternDB {
         aiState: AIState,
         base: Phaser.Physics.Arcade.Sprite,
         player: Phaser.Physics.Arcade.Sprite,
-        time: number
+        _time: number
     ) {
         const distToPlayer = Phaser.Math.Distance.Between(enemy.x, enemy.y, player.x, player.y);
 
@@ -225,7 +227,7 @@ export class EnemyPatternDB {
         aiState: AIState,
         base: Phaser.Physics.Arcade.Sprite,
         player: Phaser.Physics.Arcade.Sprite,
-        time: number
+        _time: number
     ) {
         const distToPlayer = Phaser.Math.Distance.Between(enemy.x, enemy.y, player.x, player.y);
 
@@ -321,7 +323,7 @@ export class EnemyPatternDB {
             aiState.orbitDir = Math.random() > 0.5 ? 1 : -1;
         }
 
-        let targetAngle = 0;
+        let targetAngle: number;
         let speed = aiState.speed || 25;
 
         if (aiState.phase === 'approach') {
@@ -383,7 +385,7 @@ export class EnemyPatternDB {
             enemy.setData('aiState', aiState);
         }
 
-        let targetAngle = 0;
+        let targetAngle: number;
         let speed = aiState.speed || 18;
 
         if (aiState.phase === 'approach') {

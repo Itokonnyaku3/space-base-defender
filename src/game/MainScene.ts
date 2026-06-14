@@ -687,7 +687,7 @@ export default class MainScene extends Phaser.Scene implements CombatScene {
 
     // ブースト中なら推進加速と最高速度を1.5倍にする
     const accel = this.isBoosting ? baseAccel * 1.5 : baseAccel;
-    let maxVel = this.isBoosting ? baseMaxVelocity * 1.5 : baseMaxVelocity;
+    const maxVel = this.isBoosting ? baseMaxVelocity * 1.5 : baseMaxVelocity;
  
     const isSKeyDown = this.sKey.isDown || this.wasdKeys.down.isDown;
     const speedLimit = this.isBoosting ? 22.5 : 15; // 最高速度の半分 (ブースト中: 45/2=22.5)
@@ -1159,7 +1159,7 @@ export default class MainScene extends Phaser.Scene implements CombatScene {
     }
   }
 
-  private onPlayerHitBase(player: unknown, base: unknown) {
+  private onPlayerHitBase(player: unknown, _base: unknown) {
       const p = player as Phaser.Physics.Arcade.Sprite;
       const pBody = p.body as Phaser.Physics.Arcade.Body;
       if (pBody) {

@@ -43,8 +43,8 @@ export class EnemySpawnManager {
      * 3. 'base': プレイヤーの拠点である本部基地（base）の周囲（半径450px）のランダムな円周上の座標から出現させます。
      */
     public getSpawnCoordinates(spawnSource: 'outpost' | 'screen_edge' | 'base'): { x: number; y: number } {
-        let x = 3000;
-        let y = 3000;
+        let x: number;
+        let y: number;
 
         if (spawnSource === 'outpost') {
             // 生存している敵前哨基地リストを取得
