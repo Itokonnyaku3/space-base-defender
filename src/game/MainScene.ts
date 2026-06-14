@@ -89,6 +89,8 @@ export default class MainScene extends Phaser.Scene implements CombatScene {
 
   // Wave 5 ボス（巨大戦列艦）
   private battleship: Battleship | null = null;
+  // spawnBattleship が登録するコライダー。撤去漏れ（Wave再入場での多重登録）を防ぐため保持する
+  private battleshipColliders: Phaser.Physics.Arcade.Collider[] = [];
 
   // ポーズ制御
   private isPaused: boolean = false;
@@ -1843,6 +1845,7 @@ export default class MainScene extends Phaser.Scene implements CombatScene {
       }
 
       if (this.battleship) {
+          this.clearBattleshipColliders();
           this.battleship.destroy();
           this.battleship = null;
       }
@@ -1932,22 +1935,35 @@ export default class MainScene extends Phaser.Scene implements CombatScene {
           }
       };
       // 波動砲破壊で撃破 → Wave5 クリア（既存の destroyCarrierMothership 条件を流用）
+      // destroyShip() 側で既にスプライト破棄済み。ここでは MainScene 側のコライダー撤去と参照解放のみ行う
       boss.onDefeated = () => {
           SoundEffects.playExplosion();
           this.scenarioManager.setWaveProgress('mothershipDestroyed', 1);
+          this.clearBattleshipColliders();
+          this.battleship = null;
       };
 
       // 機関は全武器で破壊可（敵弾は checkEnemyBulletHit で除外）
-      this.physics.add.collider(this.bullets, boss.engines, (b, e) => this.onBulletHitEngine(boss, b, e), this.checkEnemyBulletHit, this);
-      this.physics.add.collider(this.turretBullets, boss.engines, (b, e) => this.onBulletHitEngine(boss, b, e), this.checkEnemyBulletHit, this);
-      this.physics.add.collider(this.allyBullets, boss.engines, (b, e) => this.onBulletHitEngine(boss, b, e), undefined, this);
-      // 波動砲は自機の長距離弾のみ・露出(チャージ)中のみ（process で限定）
-      this.physics.add.collider(
-          this.bullets, boss.cannonGroup,
-          (b) => this.onBulletHitCannon(boss, b),
-          (b) => (b as Phaser.Physics.Arcade.Sprite).getData('weaponType') === 'long_range' && boss.getState().isCharging(),
-          this,
-      );
+      this.battleshipColliders = [
+          this.physics.add.collider(this.bullets, boss.engines, (b, e) => this.onBulletHitEngine(boss, b, e), this.checkEnemyBulletHit, this),
+          this.physics.add.collider(this.turretBullets, boss.engines, (b, e) => this.onBulletHitEngine(boss, b, e), this.checkEnemyBulletHit, this),
+          this.physics.add.collider(this.allyBullets, boss.engines, (b, e) => this.onBulletHitEngine(boss, b, e), undefined, this),
+          // 波動砲は自機の長距離弾のみ・露出(チャージ)中のみ（process で限定）
+          this.physics.add.collider(
+              this.bullets, boss.cannonGroup,
+              (b) => this.onBulletHitCannon(boss, b),
+              (b) => (b as Phaser.Physics.Arcade.Sprite).getData('weaponType') === 'long_range' && boss.getState().isCharging(),
+              this,
+          ),
+      ];
+  }
+
+  /** spawnBattleship で登録したコライダーを撤去する（Wave遷移・撃破時に呼ぶ）。 */
+  private clearBattleshipColliders() {
+      for (const c of this.battleshipColliders) {
+          c.destroy();
+      }
+      this.battleshipColliders = [];
   }
 
   private onBulletHitEngine(boss: Battleship, bullet: unknown, engine: unknown) {
@@ -1963,6 +1979,8 @@ export default class MainScene extends Phaser.Scene implements CombatScene {
   private onBulletHitCannon(boss: Battleship, bullet: unknown) {
       const b = bullet as Phaser.Physics.Arcade.Sprite;
       if (!b.active) return;
+      // コライダーの process でも限定しているが、誤接続に備えて防御的に再確認
+      if (b.getData('weaponType') !== 'long_range' || !boss.getState().isCharging()) return;
       this.consumeBullet(b);
       this.triggerExplosion(b.x, b.y, 8, 0x00ffff);
       boss.hitCannonByLongRange();

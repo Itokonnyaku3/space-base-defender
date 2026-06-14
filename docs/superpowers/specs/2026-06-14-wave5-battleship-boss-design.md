@@ -65,7 +65,7 @@
 
 ```
 battleship:
-  baseAdvanceSpeed: 8          # 全機関生存時の速度（現母船と同等）
+  baseAdvanceSpeed: 30         # 全機関生存時の進軍速度（px/秒・フレーム非依存）
   engineCount: 4
   engineHp: 50                 # 1基あたり
   launchBayHp: 60
