@@ -27,10 +27,11 @@ export class Battleship {
 
     private reachedBase = false;
 
-    // 部位の船体相対オフセット（船体の前方=+x方向）
+    // 推進機関の船体相対オフセット（船体の前方=+x方向 / 後方=-x に4基を横一列で配置）。
+    // 画面上で重ならず4基を数えられるよう、船幅(local y, ±55)に等間隔で並べる。
     private readonly engineOffsets = [
-        { x: -120, y: -40 }, { x: -120, y: 40 },
-        { x: -150, y: -15 }, { x: -150, y: 15 },
+        { x: -140, y: -54 }, { x: -140, y: -18 },
+        { x: -140, y: 18 }, { x: -140, y: 54 },
     ];
 
     constructor(

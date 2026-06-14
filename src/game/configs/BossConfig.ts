@@ -15,7 +15,7 @@ export interface BattleshipConfig {
 
 export const BOSS_CONFIG: { battleship: BattleshipConfig } = {
     battleship: {
-        baseAdvanceSpeed: 30,
+        baseAdvanceSpeed: 6,
         engineCount: 4,
         engineHp: 50,
         cannon: {

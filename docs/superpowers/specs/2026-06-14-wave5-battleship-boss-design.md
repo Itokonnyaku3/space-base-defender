@@ -65,7 +65,7 @@
 
 ```
 battleship:
-  baseAdvanceSpeed: 30         # 全機関生存時の進軍速度（px/秒・フレーム非依存）
+  baseAdvanceSpeed: 6          # 全機関生存時の進軍速度（px/秒・フレーム非依存。実プレイ調整値）
   engineCount: 4
   engineHp: 50                 # 1基あたり
   launchBayHp: 60
