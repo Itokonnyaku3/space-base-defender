@@ -440,6 +440,8 @@ export class EnemySpawnManager {
         if (!enemy) return;
         enemy.setScale(kind === 'bomber' ? 1.0 : 0.04);
         enemy.setBlendMode(Phaser.BlendModes.SCREEN);
+        // 迎撃機は 'enemy' テクスチャを設定色で着色（護衛機などと同じ流儀）。爆撃機は専用テクスチャのため不要
+        if (kind === 'interceptor') enemy.setTint(config.tint);
         enemy.setData('enemyId', id);
         enemy.setData('hp', config.hp);
         enemy.setData('aiState', { pattern: config.aiPattern, speed: config.speed } as AIState);
