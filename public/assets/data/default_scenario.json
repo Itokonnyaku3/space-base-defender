@@ -396,6 +396,19 @@
       "avatarType": "hologram",
       "expression": "anger",
       "uid": "evt_1780925887190_16_73n8ynyjd"
+    },
+    {
+      "id": "wave5_bays",
+      "targetWave": "wave5",
+      "triggerType": "time",
+      "triggerValue": 12000,
+      "hasTriggered": false,
+      "sender": "operator",
+      "senderName": "アルバイトのオペレーター",
+      "message": "側面の発射台から増援が！ ガードの防壁を2枚とも壊せば発射台を潰せます。無視して機関を急ぐ手もありますが…！",
+      "avatarType": "wave",
+      "expression": "normal",
+      "uid": "evt_phaseB_bays_0001"
     }
   ],
   "dynamicEvents": {

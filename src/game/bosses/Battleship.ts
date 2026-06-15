@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import type { CombatScene } from '../core/CombatScene';
 import { BattleshipState } from './BattleshipState';
+import type { LaunchKind } from './LaunchBay';
 import { BOSS_CONFIG } from '../configs/BossConfig';
 
 /**
@@ -18,6 +19,8 @@ export class Battleship {
     engines!: Phaser.Physics.Arcade.Group;
     cannon!: Phaser.Physics.Arcade.Sprite;
     cannonGroup!: Phaser.Physics.Arcade.Group;
+    bays!: Phaser.Physics.Arcade.Group;
+    walls!: Phaser.Physics.Arcade.Group;
     private gfx!: Phaser.GameObjects.Graphics;
     private beamFlashMs = 0; // 発射閃光の残り時間（>0 の間だけ本物のビームを描画）
     private animMs = 0;       // 演出用の時間アキュムレータ（予告線の点滅）
@@ -26,6 +29,7 @@ export class Battleship {
     onCannonFire?: () => void;   // 波動砲チャージ完了（基地ダメージ＋即死判定は MainScene 側）
     onReachBase?: () => void;    // 戦艦が基地へ到達
     onDefeated?: () => void;     // 波動砲破壊→撃破
+    onLaunch?: (x: number, y: number, kind: LaunchKind) => void; // 発射台からの敵射出
 
     private reachedBase = false;
 
@@ -34,6 +38,12 @@ export class Battleship {
     private readonly engineOffsets = [
         { x: -140, y: -54 }, { x: -140, y: -18 },
         { x: -140, y: 18 }, { x: -140, y: 54 },
+    ];
+
+    // 発射台（左右側面の中央）と、それを前後に挟む防壁2枚ずつ
+    private readonly bayLayout = [
+        { bay: { x: 0, y: 70 }, walls: [{ x: -45, y: 70 }, { x: 45, y: 70 }] },
+        { bay: { x: 0, y: -70 }, walls: [{ x: -45, y: -70 }, { x: 45, y: -70 }] },
     ];
 
     constructor(
@@ -71,6 +81,25 @@ export class Battleship {
         if (this.cannon.body) this.cannon.body.enable = false;
         this.cannonGroup = this.scene.physics.add.group();
         this.cannonGroup.add(this.cannon);
+
+        // 発射台×2＋防壁×4（左右側面）。HP は純ロジック側（BattleshipState.bays）が管理
+        this.bays = this.scene.physics.add.group();
+        this.walls = this.scene.physics.add.group();
+        this.bayLayout.forEach((layout, bayIndex) => {
+            const bay = this.bays.create(x, y, 'battleship_bay') as Phaser.Physics.Arcade.Sprite;
+            bay.setImmovable(true);
+            bay.setData('bayIndex', bayIndex);
+            bay.setData('offX', layout.bay.x);
+            bay.setData('offY', layout.bay.y);
+            layout.walls.forEach((w, wallIndex) => {
+                const wall = this.walls.create(x, y, 'battleship_wall') as Phaser.Physics.Arcade.Sprite;
+                wall.setImmovable(true);
+                wall.setData('bayIndex', bayIndex);
+                wall.setData('wallIndex', wallIndex);
+                wall.setData('offX', w.x);
+                wall.setData('offY', w.y);
+            });
+        });
 
         this.gfx = this.scene.add.graphics().setDepth(25);
     }
@@ -130,7 +159,32 @@ export class Battleship {
             this.onCannonFire?.();
         }
 
+        // 発射台・防壁を船体に追従
+        const follow = (s: Phaser.Physics.Arcade.Sprite) => {
+            if (!s.active) return;
+            const ox = s.getData('offX') as number;
+            const oy = s.getData('offY') as number;
+            s.x = this.hull.x + Math.cos(ang) * ox - Math.sin(ang) * oy;
+            s.y = this.hull.y + Math.sin(ang) * ox + Math.cos(ang) * oy;
+            const body = s.body as Phaser.Physics.Arcade.Body | null;
+            if (body) body.reset(s.x, s.y);
+        };
+        this.bays.getChildren().forEach((c) => follow(c as Phaser.Physics.Arcade.Sprite));
+        this.walls.getChildren().forEach((c) => follow(c as Phaser.Physics.Arcade.Sprite));
+
+        // 射出タイミング → MainScene に通知（生存発射台のみ）
+        for (const { bayIndex, kind } of this.state.tickLaunches(deltaMs)) {
+            const bay = this.findBaySprite(bayIndex);
+            if (bay && bay.active) this.onLaunch?.(bay.x, bay.y, kind);
+        }
+
         this.drawCharge();
+    }
+
+    private findBaySprite(bayIndex: number): Phaser.Physics.Arcade.Sprite | undefined {
+        return this.bays.getChildren().find(
+            (c) => (c as Phaser.Physics.Arcade.Sprite).getData('bayIndex') === bayIndex,
+        ) as Phaser.Physics.Arcade.Sprite | undefined;
     }
 
     private drawCharge(): void {
@@ -189,6 +243,27 @@ export class Battleship {
         }
     }
 
+    /** 防壁への被弾（全武器）。HP は純ロジック側で管理。破壊でスプライト除去。 */
+    damageWall(wall: Phaser.Physics.Arcade.Sprite, damage: number): void {
+        const bi = wall.getData('bayIndex') as number;
+        const wi = wall.getData('wallIndex') as number;
+        this.state.damageWall(bi, wi, damage);
+        if (!this.state.isWallAlive(bi, wi)) {
+            this.explode(wall.x, wall.y, 8, 0xb8c4d8);
+            wall.destroy();
+        }
+    }
+
+    /** 発射台への被弾（脆弱時のみ。呼び出し側が脆弱性を保証）。破壊で射出停止＋スプライト除去。 */
+    damageBay(bay: Phaser.Physics.Arcade.Sprite, damage: number): void {
+        const bi = bay.getData('bayIndex') as number;
+        this.state.damageBay(bi, damage);
+        if (!this.state.isBayAlive(bi)) {
+            this.explode(bay.x, bay.y, 16, 0xff5522);
+            bay.destroy();
+        }
+    }
+
     /** 波動砲への長距離弾命中（露出中のみ有効。呼び出し側が長距離弾＋露出を保証）。 */
     hitCannonByLongRange(): void {
         this.state.hitCannon();
@@ -200,6 +275,8 @@ export class Battleship {
     private destroyShip(): void {
         const boom = (s: Phaser.Physics.Arcade.Sprite) => { if (s.active) this.explode(s.x, s.y, 20, 0xff6600); };
         this.engines.getChildren().forEach((c) => boom(c as Phaser.Physics.Arcade.Sprite));
+        this.bays.getChildren().forEach((c) => boom(c as Phaser.Physics.Arcade.Sprite));
+        this.walls.getChildren().forEach((c) => boom(c as Phaser.Physics.Arcade.Sprite));
         boom(this.cannon);
         boom(this.hull);
         this.explode(this.hull.x, this.hull.y, 60, 0x00e5ff);
@@ -215,6 +292,8 @@ export class Battleship {
     private teardown(): void {
         if (this.engines) this.engines.clear(true, true);
         if (this.cannonGroup) this.cannonGroup.clear(true, true);
+        if (this.bays) this.bays.clear(true, true);
+        if (this.walls) this.walls.clear(true, true);
         if (this.hull && this.hull.active) this.hull.destroy();
         if (this.gfx) this.gfx.destroy();
     }

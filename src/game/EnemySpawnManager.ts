@@ -425,4 +425,28 @@ export class EnemySpawnManager {
         });
     }
 
+    /**
+     * 戦艦の発射台から単機を射出する。
+     * - interceptor: single_circle（自機追尾）
+     * - bomber: suicide_bomber（基地突撃）
+     * いずれも ENEMY_CONFIGS の値をそのまま適用する（SSOT）。
+     */
+    public spawnFromLaunchBay(x: number, y: number, kind: 'interceptor' | 'bomber'): void {
+        const id = kind === 'interceptor' ? 'single_circle' : 'suicide_bomber';
+        const config = ENEMY_CONFIGS[id];
+        if (!config) return;
+        const tex = kind === 'bomber' ? 'suicide_bomber' : 'enemy';
+        const enemy = this.enemies.create(x, y, tex) as Phaser.Physics.Arcade.Sprite;
+        if (!enemy) return;
+        enemy.setScale(kind === 'bomber' ? 1.0 : 0.04);
+        enemy.setBlendMode(Phaser.BlendModes.SCREEN);
+        enemy.setData('enemyId', id);
+        enemy.setData('hp', config.hp);
+        enemy.setData('aiState', { pattern: config.aiPattern, speed: config.speed } as AIState);
+        EventBus.emit('debug-log-add', {
+            type: 'spawn',
+            message: `[Spawn] 戦艦発射台から ${config.name} を射出`,
+        });
+    }
+
 }

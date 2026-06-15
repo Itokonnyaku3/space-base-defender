@@ -154,7 +154,14 @@ export function createGameTextures(scene: Phaser.Scene) {
         bg.generateTexture('battleship_engine', 34, 26); bg.clear();
         bg.fillStyle(0x00e5ff, 1); bg.fillCircle(22, 22, 22);
         bg.fillStyle(0xffffff, 1); bg.fillCircle(22, 22, 8);
-        bg.generateTexture('battleship_cannon', 44, 44);
+        bg.generateTexture('battleship_cannon', 44, 44); bg.clear();
+        // 発射台（赤・射出口つき）と防壁（鋼色の装甲板）。機関=橙と色で区別する
+        bg.fillStyle(0xdd2222, 1); bg.fillRoundedRect(0, 0, 30, 40, 5);
+        bg.fillStyle(0xff6644, 1); bg.fillRoundedRect(6, 14, 18, 12, 3);
+        bg.generateTexture('battleship_bay', 30, 40); bg.clear();
+        bg.fillStyle(0x8896aa, 1); bg.fillRoundedRect(0, 0, 22, 40, 3);
+        bg.fillStyle(0xb8c4d8, 1); bg.fillRect(4, 4, 14, 32);
+        bg.generateTexture('battleship_wall', 22, 40);
         bg.destroy();
     }
 }

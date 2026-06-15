@@ -1942,6 +1942,8 @@ export default class MainScene extends Phaser.Scene implements CombatScene {
           this.clearBattleshipColliders();
           this.battleship = null;
       };
+      // 発射台からの敵射出 → 既存スポーン経路で単機生成
+      boss.onLaunch = (x, y, kind) => this.spawnManager.spawnFromLaunchBay(x, y, kind);
 
       this.battleshipColliders = [
           // 自機は巨大戦艦の船体を通り抜けられない（ダメージなしの物理ブロック。母船/前哨と同じ扱い）
@@ -1957,6 +1959,17 @@ export default class MainScene extends Phaser.Scene implements CombatScene {
               (b) => (b as Phaser.Physics.Arcade.Sprite).getData('weaponType') === 'long_range' && boss.getState().isCharging(),
               this,
           ),
+          // 防壁：全武器で破壊可（敵弾は除外）
+          this.physics.add.collider(this.bullets, boss.walls, (b, w) => this.onBulletHitWall(boss, b, w), this.checkEnemyBulletHit, this),
+          this.physics.add.collider(this.turretBullets, boss.walls, (b, w) => this.onBulletHitWall(boss, b, w), this.checkEnemyBulletHit, this),
+          this.physics.add.collider(this.allyBullets, boss.walls, (b, w) => this.onBulletHitWall(boss, b, w), undefined, this),
+          // 発射台：防壁全破壊後（脆弱時）のみダメージ（process で限定）。全武器可。
+          this.physics.add.collider(this.bullets, boss.bays, (b, bay) => this.onBulletHitBay(boss, b, bay),
+              (b, bay) => this.checkEnemyBulletHit(b, bay) && boss.getState().bayVulnerable((bay as Phaser.Physics.Arcade.Sprite).getData('bayIndex')), this),
+          this.physics.add.collider(this.turretBullets, boss.bays, (b, bay) => this.onBulletHitBay(boss, b, bay),
+              (b, bay) => this.checkEnemyBulletHit(b, bay) && boss.getState().bayVulnerable((bay as Phaser.Physics.Arcade.Sprite).getData('bayIndex')), this),
+          this.physics.add.collider(this.allyBullets, boss.bays, (b, bay) => this.onBulletHitBay(boss, b, bay),
+              (b, bay) => boss.getState().bayVulnerable((bay as Phaser.Physics.Arcade.Sprite).getData('bayIndex')), this),
       ];
   }
 
@@ -1986,6 +1999,28 @@ export default class MainScene extends Phaser.Scene implements CombatScene {
       this.consumeBullet(b);
       this.triggerExplosion(b.x, b.y, 8, 0x00ffff);
       boss.hitCannonByLongRange();
+  }
+
+  private onBulletHitWall(boss: Battleship, bullet: unknown, wall: unknown) {
+      const b = bullet as Phaser.Physics.Arcade.Sprite;
+      const w = wall as Phaser.Physics.Arcade.Sprite;
+      if (!b.active || !w.active) return;
+      const dmg = (b.getData('damage') as number) ?? 10;
+      this.consumeBullet(b);
+      this.triggerExplosion(b.x, b.y, 4, 0xb8c4d8);
+      boss.damageWall(w, dmg);
+  }
+
+  private onBulletHitBay(boss: Battleship, bullet: unknown, bay: unknown) {
+      const b = bullet as Phaser.Physics.Arcade.Sprite;
+      const bs = bay as Phaser.Physics.Arcade.Sprite;
+      if (!b.active || !bs.active) return;
+      // process で脆弱性を確認済みだが、防御的に再確認
+      if (!boss.getState().bayVulnerable(bs.getData('bayIndex') as number)) return;
+      const dmg = (b.getData('damage') as number) ?? 10;
+      this.consumeBullet(b);
+      this.triggerExplosion(b.x, b.y, 6, 0xff5522);
+      boss.damageBay(bs, dmg);
   }
 
   // 波動砲チャージ完了：ビーム経路に自機がいれば即死、そうでなければ基地に大ダメージ
