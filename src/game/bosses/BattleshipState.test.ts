@@ -52,4 +52,23 @@ describe('BattleshipState', () => {
     expect(s.cannonHits).toBe(4);
     expect(s.isDefeated()).toBe(true);
   });
+
+  it('bays: 設定数だけ生成され、防壁全破壊で発射台が破壊可能・破壊で射出停止', () => {
+    const s = new BattleshipState(cfg);
+    expect(s.bayCount()).toBe(cfg.launch.bayCount);
+    expect(s.bayVulnerable(0)).toBe(false);
+    s.damageWall(0, 0, cfg.launch.wallHp);
+    s.damageWall(0, 1, cfg.launch.wallHp);
+    expect(s.bayVulnerable(0)).toBe(true);
+    s.damageBay(0, cfg.launch.bayHp);
+    expect(s.isBayAlive(0)).toBe(false);
+  });
+
+  it('tickLaunches: 間隔到達で各生存発射台の射出指示を返す', () => {
+    const s = new BattleshipState(cfg);
+    expect(s.tickLaunches(cfg.launch.intervalMs)).toEqual([
+      { bayIndex: 0, kind: 'interceptor' },
+      { bayIndex: 1, kind: 'interceptor' },
+    ]);
+  });
 });
