@@ -191,9 +191,16 @@
   - シナリオ `public/assets/data/default_scenario.json` … wave5 から `spawn_mothership` を撤廃（戦艦は `handleWaveTransition('wave5')` が生成）。通信2件を戦艦戦の誘導に更新。
 - **検証**: `npm run check` 緑（build+lint+**22**テスト、JSON検証含む）。実機スモーク＝wave5 起動でボス通信表示・デバッグでのライブ wave5 遷移ともにコンソールエラー0（spawn＋updateループがクラッシュしない）。**最終コードレビュー（別AI）実施済み＝指摘のライフサイクル/防御を修正反映**。
 - **要・実機プレイテスト（自動検証不能＝照準/射撃の自動化困難）**: 機関破壊→減速→全破壊で波動砲露出→30秒チャージゲージ→長距離弾4発で自爆、ビーム即死、基地到達ダメージ。**戦闘の手触り・バランス（速度30/HP/チャージ30秒）は実プレイで調整**。
-- **Phase B（未実装・別計画）**: 戦艦左右の**発射台×2**＋**防壁×4**＋射出される敵（迎撃機/爆撃機）。発射台は防壁を壊すと破壊可能、破壊で射出停止。
+- **Phase A 追補（実プレイ反映）**: 進軍速度 30→**6px/秒**（速すぎたため1/5）。推進機関4基を後方横一列に再配置（重なり解消）。波動砲チャージ予告線を**破線＋点滅**化し発射の瞬間だけ太い閃光ビーム描画（「チャージ中なのにビーム」誤認を解消）。自機と船体の**物理衝突**を追加（回転に合わせ当たり判定を縦長110×320へ補正）。戦艦を**レーダー常時表示**（船体＋残存機関）。コミット `6d7d26b`〜`90cffc9`。
+- **Phase B（実装済み）**: 戦艦左右の**発射台×2＋防壁×4**＋射出敵。
+  - 純ロジック `src/game/bosses/LaunchBay.ts`（防壁ガード→発射台脆弱化→破壊で射出停止／13秒ごと迎撃機↔爆撃機を交互）＋vitest。`BattleshipState.bays[]` に統合。設定は `BossConfig.battleship.launch`（bayHp60/wallHp40/intervalMs13000/敵ID=single_circle・suicide_bomber）。
+  - Phaser実体は `Battleship` が発射台/防壁スプライト・船体追従・射出tick(`onLaunch`)・破壊・teardown を担当。テクスチャ `battleship_bay`(赤)/`battleship_wall`(鋼色)で機関(橙)・波動砲(シアン)と色分け。
+  - `EnemySpawnManager.spawnFromLaunchBay` が発射台位置から単機射出（迎撃機=single_circle 自機追尾／爆撃機=suicide_bomber 基地突撃。SSOT=ENEMY_CONFIGS）。
+  - MainScene：`onLaunch` 配線＋弾×防壁/発射台コライダー6本（発射台は**脆弱時のみ**＝process で `bayVulnerable` 限定、敵弾は `checkEnemyBulletHit` で除外）。全コライダーは `battleshipColliders` で撤去。
+  - 検証：`npm run check` 緑（**28テスト**）。コードレビュー(別AI/opus)=APPROVE WITH NITS、指摘の迎撃機着色を反映済み。**戦闘の手触り（防壁→発射台の手順・射出テンポ13秒×2・増援に押し負けないか）は実プレイ確認が必要**。計画書 `docs/superpowers/plans/2026-06-15-wave5-battleship-boss-phaseB.md`。
 - **既知の体裁メモ**: デバッグUI/Wave名が旧称「巨大母船ボス決戦/敵母船殲滅指令」のまま（勝利条件キー `destroyCarrierMothership`/進捗 `mothershipDestroyed` も流用）。動作は正常だが、戦列艦テーマに改名するかは要判断。
-- **ブランチ運用**: 当初 feature ブランチ予定だったが `main` 上で段階コミット（OneDrive 配下のため worktree 同期競合を回避する方針）。Phase A は `becefbe`〜`ade9e75`。
+- **既知の検証制約**: dev で Phaser が多重起動（React StrictMode 由来＝本番ビルドでは単一）。この影響で eval/プレビューからの実機観察時に update ループが回らずレーダーが空になる等、**自動の画面検証が不安定**。純ロジックは vitest、統合は型＋生成時エラー0で担保し、画面/戦闘はユーザー実機確認に委ねている。
+- **ブランチ運用**: 当初 feature ブランチ予定だったが `main` 上で段階コミット（OneDrive 配下のため worktree 同期競合を回避する方針）。Phase A は `becefbe`〜`ade9e75`、Phase A追補 `6d7d26b`〜`90cffc9`、Phase B `2a54939`〜`3293192`。
 
 ## 次のAI（アシスタント）への指示
 - このファイルは、異なるPC間で開発を引き継ぐ際に、担当AIがプロジェクトの全体像と進行状況を理解するためのものです。
