@@ -5,6 +5,9 @@ import path from 'path'
 
 // https://vite.dev/config/
 export default defineConfig({
+  // GitHub Pages はサブパス(/<repo>/)配信のため、生成物を相対パス参照にする。
+  // これで <user>.github.io/<repo>/ でも assets が正しく解決される。
+  base: './',
   plugins: [
     react(),
     {
