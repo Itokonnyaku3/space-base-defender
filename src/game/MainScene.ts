@@ -60,6 +60,10 @@ export default class MainScene extends Phaser.Scene implements CombatScene {
   private spawnManager!: EnemySpawnManager;
   scenarioManager!: ScenarioManager;
   private radarDebugMode: boolean = false;
+  // デバッグ用ゲーム速度倍率。全時間ロジックは gameClock を基準にし、Phaser物理/タイマーも同期スケールする
+  private debugSpeed: number = 1;
+  private gameClock: number = 0;       // debugSpeed 適用済みの累積ゲーム時間(ms)
+  private lastLoopTime: number = -1;   // 前フレームの RAF 時刻(内部計算用)
   private targetMoveAngle: number | null = null;
   private aKey!: Phaser.Input.Keyboard.Key;
   private sceneStartTime: number = 0;
@@ -113,8 +117,8 @@ export default class MainScene extends Phaser.Scene implements CombatScene {
 
     // Base
     this.base = this.physics.add.sprite(WORLD_CENTER, WORLD_CENTER, 'base');
-    this.base.setScale(0.15); // 元のサイズ
-    this.base.setBlendMode(Phaser.BlendModes.SCREEN); // 暗い背景を透過させる
+    // プロシージャル生成の六角要塞テクスチャ(256px)。旧 base.png(1024x0.15≈154px)より一回り大型化
+    this.base.setScale(0.85); // ≈218px 相当
     this.base.setImmovable(true);
 
     // Player
@@ -259,6 +263,12 @@ export default class MainScene extends Phaser.Scene implements CombatScene {
         this.radarDebugMode = enabled;
     });
 
+    // デバッグ用ゲーム速度倍率の変更（検証用スピードモード）
+    EventBus.removeAll('set-game-speed');
+    EventBus.on('set-game-speed', (mult: number) => {
+        this.setDebugSpeed(mult);
+    });
+
     EventBus.removeAll('view-change');
     EventBus.on('view-change', (view: 'game' | 'editor') => {
         if (this.input && this.input.keyboard) {
@@ -306,7 +316,12 @@ export default class MainScene extends Phaser.Scene implements CombatScene {
     this.boostText = this.add.text(getUIX(10), getUIY(160), `ブースト回数: ${this.boostCharges}/3 (Wキー)`, { color: '#ff00ff', fontSize: '14px' });
     this.boostText.setScrollFactor(0).setScale(uiScale);
     
-    this.sceneStartTime = this.time.now;
+    // 仮想ゲーム時計(gameClock)は 0 起点。sceneStartTime も同基準にそろえる
+    this.gameClock = 0;
+    this.lastLoopTime = -1;
+    this.sceneStartTime = 0;
+    // デバッグ倍速時の物理移動上乗せ（物理反映後に実行）
+    this.events.on(Phaser.Scenes.Events.POST_UPDATE, this.applyDebugSpeedMovement, this);
     this.cooldownGraphics = this.add.graphics();
     this.cooldownGraphics.setScrollFactor(0);
     this.cooldownGraphics.setDepth(100);
@@ -453,7 +468,48 @@ export default class MainScene extends Phaser.Scene implements CombatScene {
     this.scene.pause();
   }
 
-  update(time: number) {
+  // デバッグ用: ゲーム速度倍率を設定。
+  // - 時間ロジック(射撃/ブースト/シナリオ/タレット): update先頭の gameClock を m倍で進める
+  // - Phaserタイマー(敵スポーン/delayedCall): this.time.timeScale
+  // - 物理移動: POST_UPDATE で速度×追加時間ぶん位置を上乗せ（applyDebugSpeedMovement）
+  //   ※ Arcade の world.timeScale は fixedStep 下で不安定なため使わない
+  private setDebugSpeed(mult: number) {
+    const m = mult >= 1 ? mult : 1;
+    this.debugSpeed = m;
+    this.time.timeScale = m;
+    EventBus.emit('debug-log-add', {
+        type: 'system',
+        message: `[Debug] ゲーム速度を ${m}倍速 に設定しました`
+    });
+  }
+
+  // 物理移動の倍速化: 通常の物理積分(=1倍)に加え、(m-1)倍ぶんの移動を手動で上乗せする。
+  // POST_UPDATE(物理反映後)に実行するため、当たり判定は各フレーム1回のみで二重処理にならない。
+  private applyDebugSpeedMovement() {
+    if (this.debugSpeed <= 1 || this.isPaused) return;
+    const extra = (this.game.loop.delta / 1000) * (this.debugSpeed - 1);
+    if (extra <= 0) return;
+    // Phaser4 の world.bodies は native Set。移動可能なボディの位置を速度×追加時間だけ進める
+    for (const body of this.physics.world.bodies) {
+        if (!body || !body.enable || !body.moves) continue;
+        const go = body.gameObject as unknown as { x: number; y: number } | null;
+        if (!go) continue;
+        go.x += body.velocity.x * extra;
+        go.y += body.velocity.y * extra;
+    }
+  }
+
+  update(loopTime: number) {
+    // === デバッグ速度倍率つき仮想ゲーム時計 ===
+    // 以降の時間ロジックは全て gameClock(=time) を基準にするため、debugSpeed が全系統へ均一に効く
+    if (this.lastLoopTime < 0) this.lastLoopTime = loopTime;
+    let realDelta = loopTime - this.lastLoopTime;
+    this.lastLoopTime = loopTime;
+    if (realDelta < 0) realDelta = 0;
+    if (realDelta > 100) realDelta = 100; // ポーズ復帰等の巨大デルタを抑制
+    this.gameClock += realDelta * this.debugSpeed;
+    const time = this.gameClock;
+
     // Dキーで武器トグル切り替え、または1, 2キー
     if (Phaser.Input.Keyboard.JustDown(this.dKey)) {
         const nextWeapon = this.currentWeapon === 'long_range' ? 'machinegun' : 'long_range';
@@ -604,7 +660,7 @@ export default class MainScene extends Phaser.Scene implements CombatScene {
     this.updateAllies(time);
     this.updateMotherships(time);
     this.updateOutpostsSpawn(time);
-    if (this.battleship) this.battleship.update(this.game.loop.delta);
+    if (this.battleship) this.battleship.update(this.game.loop.delta * this.debugSpeed);
 
     // Wave 1 の場合、敵基地（前哨基地）を本部の周りで公転移動させる (半径 900px の近距離に変更)
     if (this.currentWave === 1) {
@@ -696,10 +752,10 @@ export default class MainScene extends Phaser.Scene implements CombatScene {
     // ブースト中なら推進加速と最高速度を1.5倍にする
     const accel = this.isBoosting ? baseAccel * 1.5 : baseAccel;
     const maxVel = this.isBoosting ? baseMaxVelocity * 1.5 : baseMaxVelocity;
- 
+
     const isSKeyDown = this.sKey.isDown || this.wasdKeys.down.isDown;
     const speedLimit = this.isBoosting ? 22.5 : 15; // 最高速度の半分 (ブースト中: 45/2=22.5)
- 
+
     if (isSKeyDown) {
         this.player.setMaxVelocity(speedLimit);
         // 現在の速度が制限値を超えている場合は徐々に減速させる
@@ -710,10 +766,10 @@ export default class MainScene extends Phaser.Scene implements CombatScene {
     } else {
         this.player.setMaxVelocity(maxVel);
     }
- 
+
     // 旋回速度を固定値 0.025 にする（スピード連動の廃止）
     const rotSpeed = 0.025;
- 
+
     // 常に自機はマウスカーソルの方向を向く
     const targetAngle = Phaser.Math.Angle.Between(this.player.x, this.player.y, worldPoint.x, worldPoint.y) + Math.PI / 2;
     this.player.rotation = Phaser.Math.Angle.RotateTo(this.player.rotation, targetAngle, rotSpeed);
@@ -721,7 +777,7 @@ export default class MainScene extends Phaser.Scene implements CombatScene {
     if (this.targetMoveAngle !== null) {
         // クリックしたターゲット方向へ加速（自機の向きに関わらずスライド移動）
         this.physics.velocityFromRotation(this.targetMoveAngle - Math.PI / 2, accel, body.acceleration);
-        
+
         // スラスターのパーティクル生成（機体の向きに合わせて後ろから噴射）
         const px = this.player.x - Math.sin(this.player.rotation) * 14;
         const py = this.player.y + Math.cos(this.player.rotation) * 14;
@@ -737,14 +793,14 @@ export default class MainScene extends Phaser.Scene implements CombatScene {
   private handleShooting(time: number) {
     if (this.aKey && this.aKey.isDown && time > this.lastFired) {
       const bullet = this.bullets.get(this.player.x, this.player.y) as Phaser.Physics.Arcade.Sprite;
-      
+
       if (bullet) {
         bullet.setActive(true);
         bullet.setVisible(true);
         if (bullet.body) bullet.body.enable = true; // 物理ボディを有効化
         bullet.setData('startX', this.player.x);
         bullet.setData('startY', this.player.y);
-        
+
         const angle = this.player.rotation - Math.PI / 2;
         const weapon = WEAPON_CONFIGS[this.currentWeapon];
 
@@ -920,7 +976,7 @@ export default class MainScene extends Phaser.Scene implements CombatScene {
   }
 
   private updateBullets(group: Phaser.Physics.Arcade.Group, defaultMaxRange?: number) {
-    const time = this.time.now;
+    const time = this.gameClock;
     group.getChildren().forEach((child) => {
         const bullet = child as Phaser.Physics.Arcade.Sprite;
         if (bullet.active) {

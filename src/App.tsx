@@ -10,6 +10,7 @@ import './App.css';
 function App() {
   const [view, setView] = useState<'game' | 'editor'>('game');
   const [debugMode, setDebugMode] = useState<boolean>(false);
+  const [speed3x, setSpeed3x] = useState<boolean>(false);
   const [isPaused, setIsPaused] = useState<boolean>(false);
   const [isGameOver, setIsGameOver] = useState<boolean>(false);
 
@@ -25,6 +26,17 @@ function App() {
       type: 'system',
       message: `デバッグモードを ${nextMode ? '有効' : '無効'} にしました`
     });
+    // デバッグモードを切ったら速度倍率も通常(1倍)へ戻す
+    if (!nextMode && speed3x) {
+      setSpeed3x(false);
+      EventBus.emit('set-game-speed', 1);
+    }
+  };
+
+  const handleToggleSpeed = () => {
+    const next = !speed3x;
+    setSpeed3x(next);
+    EventBus.emit('set-game-speed', next ? 3 : 1);
   };
 
   const handleTogglePause = () => {
@@ -82,6 +94,32 @@ function App() {
               }}
             >
               ⟳ リスタート
+            </button>
+          )}
+
+          {/* スピード3倍モード（デバッグモードON時のみ表示） */}
+          {debugMode && (
+            <button
+              onClick={handleToggleSpeed}
+              style={{
+                position: 'absolute',
+                top: '52px',
+                right: '12px',
+                zIndex: 1000,
+                padding: '6px 14px',
+                backgroundColor: speed3x ? 'rgba(245, 158, 11, 0.22)' : 'rgba(15, 23, 42, 0.85)',
+                border: speed3x ? '1px solid #f59e0b' : '1px solid #1e293b',
+                color: speed3x ? '#fbbf24' : '#94a3b8',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontWeight: 600,
+                fontSize: '13px',
+                backdropFilter: 'blur(4px)',
+                boxShadow: '0 4px 6px rgba(0,0,0,0.3)',
+                transition: 'all 0.2s',
+              }}
+            >
+              ⏩ スピード{speed3x ? '3倍: ON' : '3倍: OFF'}
             </button>
           )}
 

@@ -49,6 +49,7 @@ export interface RadarData {
 
 export interface GameEventMap {
     'toggle-radar-debug': boolean;
+    'set-game-speed': number;
     'debug-log-add': DebugLogPayload;
     'toggle-pause': void;
     'pause-state-changed': boolean;

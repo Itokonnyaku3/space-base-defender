@@ -44,9 +44,61 @@ export function createGameTextures(scene: Phaser.Scene) {
     graphics.generateTexture('bullet', 8, 8);
     graphics.clear();
 
-    // Enemy & Base Textures
+    // Enemy Texture
     scene.load.image('enemy', 'assets/sprites/enemy.png');
-    scene.load.image('base', 'assets/sprites/base.png');
+
+    // Base (自基地) - 256x256 の六角形スペース要塞をプロシージャル生成（旧 base.png を置き換え・大型化）
+    {
+      const bcx = 128, bcy = 128;
+      const hex = (r: number, rot = -Math.PI / 2) => {
+        const pts: Phaser.Math.Vector2[] = [];
+        for (let i = 0; i < 6; i++) {
+          const a = rot + i * Math.PI / 3;
+          pts.push(new Phaser.Math.Vector2(bcx + Math.cos(a) * r, bcy + Math.sin(a) * r));
+        }
+        return pts;
+      };
+      // 外殻ハル
+      graphics.fillStyle(0x0e2440, 1);
+      graphics.fillPoints(hex(112), true);
+      // ハル縁のネオンライン
+      graphics.lineStyle(4, 0x0088ff, 0.9);
+      graphics.strokePoints(hex(112), true);
+      // 内側プレート
+      graphics.fillStyle(0x14304f, 1);
+      graphics.fillPoints(hex(86), true);
+      // 放射状の構造フレーム（6本）
+      graphics.lineStyle(7, 0x33507a, 1);
+      for (let i = 0; i < 6; i++) {
+        const a = -Math.PI / 2 + i * Math.PI / 3;
+        graphics.beginPath();
+        graphics.moveTo(bcx, bcy);
+        graphics.lineTo(bcx + Math.cos(a) * 104, bcy + Math.sin(a) * 104);
+        graphics.strokePath();
+      }
+      // 各頂点の防御タレット
+      for (const v of hex(112)) {
+        graphics.fillStyle(0x1b2a3a, 1); graphics.fillCircle(v.x, v.y, 13);
+        graphics.fillStyle(0x8899aa, 1); graphics.fillCircle(v.x, v.y, 8);
+        graphics.fillStyle(0x66ccff, 1); graphics.fillCircle(v.x, v.y, 3);
+      }
+      // 中央リング
+      graphics.lineStyle(6, 0x0088ff, 0.8);
+      graphics.strokeCircle(bcx, bcy, 58);
+      // リングのセグメント灯（金/シアン交互）
+      for (let i = 0; i < 12; i++) {
+        const a = i * Math.PI / 6;
+        graphics.fillStyle(i % 2 ? 0x00ffff : 0xffd700, 1);
+        graphics.fillCircle(bcx + Math.cos(a) * 58, bcy + Math.sin(a) * 58, 3.5);
+      }
+      // 中央コア（発光する原子炉）
+      graphics.fillStyle(0x1a3a5a, 1); graphics.fillCircle(bcx, bcy, 40);
+      graphics.fillStyle(0xffd700, 0.9); graphics.fillCircle(bcx, bcy, 25);
+      graphics.fillStyle(0x66ccff, 0.9); graphics.fillCircle(bcx, bcy, 15);
+      graphics.fillStyle(0xffffff, 1); graphics.fillCircle(bcx, bcy, 7);
+      graphics.generateTexture('base', 256, 256);
+      graphics.clear();
+    }
 
     // Turret
     scene.load.image('turret', 'assets/sprites/turret.png');
