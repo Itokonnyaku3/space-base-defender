@@ -120,9 +120,12 @@ export default class MainScene extends Phaser.Scene implements CombatScene {
     // プロシージャル生成の六角要塞テクスチャ(256px)。旧 base.png(1024x0.15≈154px)より一回り大型化
     this.base.setScale(0.85); // ≈218px 相当
     this.base.setImmovable(true);
+    // 当たり判定を六角ハルに近い円形にする（四角形の角での引っかかりを防ぐ）。半径はテクスチャ基準で、
+    // 実効半径 ≈ 105 * 0.85 ≈ 89px。setCircle(radius, offsetX, offsetY) は未スケールのフレーム座標で指定する。
+    (this.base.body as Phaser.Physics.Arcade.Body).setCircle(105, 23, 23);
 
-    // Player
-    this.player = this.physics.add.sprite(WORLD_CENTER, WORLD_CENTER + 100, 'player'); 
+    // Player（大型化した基地の当たり判定に埋まらないよう、初期位置を基地の外側に離す）
+    this.player = this.physics.add.sprite(WORLD_CENTER, WORLD_CENTER + 220, 'player');
     this.player.setCollideWorldBounds(true);
     this.player.setMaxVelocity(30); // 元の速度に戻す
     this.player.setDrag(5); // 元の減衰に戻す
